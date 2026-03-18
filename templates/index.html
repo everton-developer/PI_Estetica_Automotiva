@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}STETIC CAR - Painel Principal{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="fw-bold mb-2" style="font-size: 2.2rem;">
+        <i class="bi bi-car-front-fill" style="color: var(--accent-primary);"></i>
+        STETIC CAR
+    </h1>
+    <p class="text-secondary fs-5">Sistema de Gestão - Estética Automotiva</p>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row g-4 mb-5">
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="color: var(--accent-primary);"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-number" style="color: var(--accent-primary);">{{ total_clientes }}</div>
+            <div class="stat-label">Clientes</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="color: var(--accent-info);"><i class="bi bi-truck"></i></div>
+            <div class="stat-number" style="color: var(--accent-info);">{{ total_veiculos }}</div>
+            <div class="stat-label">Veículos</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="color: var(--accent-success);"><i class="bi bi-wrench-adjustable"></i></div>
+            <div class="stat-number" style="color: var(--accent-success);">{{ total_servicos }}</div>
+            <div class="stat-label">Serviços</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="color: var(--accent-secondary);"><i class="bi bi-receipt"></i></div>
+            <div class="stat-number" style="color: var(--accent-secondary);">{{ total_orcamentos }}</div>
+            <div class="stat-label">Orçamentos</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="color: var(--accent-warning);"><i class="bi bi-hourglass-split"></i></div>
+            <div class="stat-number" style="color: var(--accent-warning);">{{ orcamentos_pendentes }}</div>
+            <div class="stat-label">Pendentes</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-icon" style="color: var(--accent-success);"><i class="bi bi-check-circle"></i></div>
+            <div class="stat-number" style="color: var(--accent-success);">{{ orcamentos_aprovados }}</div>
+            <div class="stat-label">Aprovados</div>
+        </div>
+    </div>
+</div>
+
+<!-- Atalhos Rápidos -->
+<div class="row g-3">
+    <div class="col-md-3 col-6">
+        <a href="/clientes" class="text-decoration-none">
+            <div class="card text-center py-4" style="cursor: pointer;">
+                <i class="bi bi-person-plus-fill fs-2" style="color: var(--accent-primary);"></i>
+                <span class="mt-2 fw-500">Gerenciar Clientes</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/veiculos" class="text-decoration-none">
+            <div class="card text-center py-4" style="cursor: pointer;">
+                <i class="bi bi-truck fs-2" style="color: var(--accent-info);"></i>
+                <span class="mt-2 fw-500">Gerenciar Veículos</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/servicos" class="text-decoration-none">
+            <div class="card text-center py-4" style="cursor: pointer;">
+                <i class="bi bi-wrench fs-2" style="color: var(--accent-success);"></i>
+                <span class="mt-2 fw-500">Gerenciar Serviços</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/orcamentos" class="text-decoration-none">
+            <div class="card text-center py-4" style="cursor: pointer;">
+                <i class="bi bi-receipt-cutoff fs-2" style="color: var(--accent-warning);"></i>
+                <span class="mt-2 fw-500">Orçamentos</span>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Orçamentos - STETIC CAR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0"><i class="bi bi-receipt me-2" style="color: var(--accent-warning);"></i>Orçamentos</h2>
+    <button class="btn btn-success-custom" data-bs-toggle="modal" data-bs-target="#modalNovoOrcamento">
+        <i class="bi bi-plus-lg me-1"></i> Novo Orçamento
+    </button>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body p-3">
+        <form method="GET" action="/orcamentos" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Buscar</label>
+                <input type="text" name="busca" class="form-control" 
+                       placeholder="Buscar por cliente ou placa..." 
+                       value="{{ busca if busca else '' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="Todos" {% if status_filtro == 'Todos' %}selected{% endif %}>Todos</option>
+                    <option value="Pendente" {% if status_filtro == 'Pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="Aprovado" {% if status_filtro == 'Aprovado' %}selected{% endif %}>Aprovado</option>
+                    <option value="Recusado" {% if status_filtro == 'Recusado' %}selected{% endif %}>Recusado</option>
+                    <option value="Concluído" {% if status_filtro == 'Concluído' %}selected{% endif %}>Concluído</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-primary-custom flex-grow-1" type="submit">
+                    <i class="bi bi-funnel me-1"></i> Filtrar
+                </button>
+                <a href="/orcamentos?limpar=1" class="btn btn-outline-custom">Limpar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Orçamentos -->
+{% if orcamentos %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Nº</th>
+                <th>Cliente</th>
+                <th>Veículo</th>
+                <th>Data e hora do Orçamento</th>
+                <th>Status</th>
+                <th class="text-end">Valor Total</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for o in orcamentos %}
+            <tr style="cursor: pointer;" onclick="window.location='/orcamentos/{{ o[0] }}'">
+                <td class="fw-600" style="color: var(--accent-primary);">#{{ o[0] }}</td>
+                <td class="fw-500">{{ o[1] }}</td>
+                <td>
+                    <code style="color: var(--accent-info);">{{ o[2] }}</code>
+                    <small class="text-secondary d-block">{{ o[3] }}</small>
+                </td>
+                <td>{{ o[4] }}</td>
+                <td>
+                    {% if o[5] == 'Pendente' %}
+                        <span class="badge-pendente"><i class="bi bi-hourglass-split me-1"></i>Pendente</span>
+                    {% elif o[5] == 'Aprovado' %}
+                        <span class="badge-aprovado"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
+                    {% elif o[5] == 'Recusado' %}
+                        <span class="badge-recusado"><i class="bi bi-x-circle me-1"></i>Recusado</span>
+                    {% elif o[5] == 'Concluído' %}
+                        <span class="badge-concluido"><i class="bi bi-trophy me-1"></i>Concluído</span>
+                    {% endif %}
+                </td>
+                <td class="text-end fw-600" style="color: var(--accent-success);">
+                    R$ {{ "%.2f"|format(o[6])|replace('.', ',') }}
+                </td>
+                <td class="text-end" onclick="event.stopPropagation();">
+                    <a href="/orcamentos/{{ o[0] }}" class="btn btn-sm btn-primary-custom me-1" title="Ver Detalhes">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <form action="/orcamentos/excluir/{{ o[0] }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-danger-custom" 
+                                onclick="return confirm('Excluir este orçamento?')" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-receipt fs-1" style="color: var(--text-secondary); opacity: 0.3;"></i>
+        <p class="text-secondary mt-2">Nenhum orçamento encontrado.</p>
+        <button class="btn btn-success-custom mt-2" data-bs-toggle="modal" data-bs-target="#modalNovoOrcamento">
+            <i class="bi bi-plus-lg me-1"></i> Criar Primeiro Orçamento
+        </button>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block modals %}
+<!-- Modal Novo Orçamento -->
+<div class="modal fade" id="modalNovoOrcamento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom-color: var(--border-color);">
+                <h5 class="modal-title fw-bold"><i class="bi bi-receipt-cutoff me-2" style="color: var(--accent-success);"></i>Novo Orçamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/orcamentos/criar" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="cliente_id" class="form-label">Cliente *</label>
+                        <select class="form-select" id="modal_cliente_id" name="cliente_id" required onchange="carregarVeiculos()">
+                            <option value="">Selecione o cliente...</option>
+                            {% for cl in clientes %}
+                            <option value="{{ cl[0] }}">{{ cl[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="veiculo_id" class="form-label">Veículo *</label>
+                        <select class="form-select" id="modal_veiculo_id" name="veiculo_id" required>
+                            <option value="">Selecione o cliente primeiro...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacoes" class="form-label">Observações</label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
+                                  placeholder="Observações sobre o orçamento..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top-color: var(--border-color);">
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success-custom">
+                        <i class="bi bi-check-lg me-1"></i> Criar Orçamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function carregarVeiculos() {
+        const clienteId = document.getElementById('modal_cliente_id').value;
+        const selectVeiculo = document.getElementById('modal_veiculo_id');
+
+        selectVeiculo.innerHTML = '<option value="">Carregando...</option>';
+
+        if (!clienteId) {
+            selectVeiculo.innerHTML = '<option value="">Selecione o cliente primeiro...</option>';
+            return;
+        }
+
+        fetch('/api/veiculos_cliente/' + clienteId)
+            .then(response => response.json())
+            .then(veiculos => {
+                selectVeiculo.innerHTML = '';
+                if (veiculos.length === 0) {
+                    selectVeiculo.innerHTML = '<option value="">Nenhum veículo cadastrado para este cliente</option>';
+                    return;
+                }
+                veiculos.forEach(v => {
+                    const option = document.createElement('option');
+                    option.value = v.id;
+                    option.textContent = `${v.marca} ${v.modelo} — ${v.placa}`;
+                    selectVeiculo.appendChild(option);
+                });
+            })
+            .catch(err => {
+                selectVeiculo.innerHTML = '<option value="">Erro ao carregar veículos</option>';
+            });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block title %}Orçamento #{{ orcamento[0] }} - STETIC CAR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <div>
+        <a href="/orcamentos" class="btn btn-outline-custom btn-sm mb-2">
+            <i class="bi bi-arrow-left me-1"></i> Voltar
+        </a>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-receipt me-2" style="color: var(--accent-warning);"></i>
+            Orçamento <span style="color: var(--accent-primary);">#{{ orcamento[0] }}</span>
+        </h2>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-custom" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Imprimir
+        </button>
+        <form action="/orcamentos/excluir/{{ orcamento[0] }}" method="POST" class="d-inline">
+            <button type="submit" class="btn btn-danger-custom"
+                onclick="return confirm('Tem certeza que deseja excluir este orçamento?')">
+                <i class="bi bi-trash me-1"></i> Excluir
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Informações do Orçamento -->
+    <div class="col-lg-8">
+        <!-- Dados do Cliente e Veículo -->
+        <div class="card mb-4 print-break-after">
+            <div class="card-header accent-purple">
+                <i class="bi bi-info-circle me-2"></i> Informações
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="section-divider"><i class="bi bi-person me-1"></i> Cliente</p>
+                        <p class="fw-600 mb-1" style="font-size: 1.1rem;">{{ orcamento[3] }}</p>
+                        <p class="text-secondary mb-1"><i class="bi bi-telephone me-1"></i> {{ orcamento[4] or 'Não
+                            informado' }}</p>
+                        <p class="text-secondary mb-0"><i class="bi bi-card-text me-1"></i> CPF: {{ orcamento[5] }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="section-divider"><i class="bi bi-truck me-1"></i> Veículo</p>
+                        <p class="fw-600 mb-1" style="font-size: 1.1rem;">{{ orcamento[7] }}</p>
+                        <p class="text-secondary mb-1">
+                            <i class="bi bi-hash me-1"></i> Placa:
+                            <code style="color: var(--accent-info);">{{ orcamento[6] }}</code>
+                        </p>
+                        <p class="text-secondary mb-0">
+                            {% if orcamento[8] %}Ano: {{ orcamento[8] }}{% endif %}
+                            {% if orcamento[9] %} | Cor: {{ orcamento[9] }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <hr style="border-color: var(--border-color);">
+                <div class="row">
+                    <div class="col-md-4">
+                        <small class="text-secondary">Data e hora do Orçamento</small>
+                        <p class="fw-500">{{ orcamento[10] }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-secondary">Status</small>
+                        <p>
+                            {% if orcamento[11] == 'Pendente' %}
+                            <span class="badge-pendente"><i class="bi bi-hourglass-split me-1"></i>Pendente</span>
+                            {% elif orcamento[11] == 'Aprovado' %}
+                            <span class="badge-aprovado"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
+                            {% elif orcamento[11] == 'Recusado' %}
+                            <span class="badge-recusado"><i class="bi bi-x-circle me-1"></i>Recusado</span>
+                            {% elif orcamento[11] == 'Concluído' %}
+                            <span class="badge-concluido"><i class="bi bi-trophy me-1"></i>Concluído</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-secondary">Valor Total</small>
+                        <p class="fw-700" style="font-size: 1.5rem; color: var(--accent-success);">
+                            R$ {{ "%.2f"|format(orcamento[12])|replace('.', ',') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Itens do Orçamento -->
+        <div class="card mb-4 print-break-before">
+            <div class="card-header accent-green d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-check me-2"></i> Itens do Orçamento</span>
+                <button class="btn btn-sm btn-success-custom no-print" data-bs-toggle="collapse"
+                    data-bs-target="#formAdicionarItem">
+                    <i class="bi bi-plus-lg me-1"></i> Adicionar Item
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Formulário para adicionar item (colapsável) -->
+                <div class="collapse mb-3 no-print" id="formAdicionarItem">
+                    <div class="card" style="background: var(--bg-input); border-color: var(--border-color);">
+                        <div class="card-body p-3">
+                            <form action="/orcamentos/{{ orcamento[0] }}/adicionar_item" method="POST">
+                                <div class="row g-1 align-items-end mb-1 ms-1 me-1">
+                                    <div class="col-md-2">
+                                        <label class="form-label" style="font-size: 0.9em;">Tipo *</label>
+                                        <select class="form-select form-select-sm" name="tipo" id="selectTipo" required
+                                            onchange="filtrarServicos()">
+                                            <option value="">Selecione</option>
+                                            <option value="Particular">Particular</option>
+                                            <option value="Seguro">Seguro</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" style="font-size: 0.9em;">Serviço (opcional)</label>
+                                        <select class="form-select form-select-sm" name="servico_id" id="selectServico"
+                                            onchange="preencherValor()" onfocus="restaurarNomes()" disabled>
+                                            <option value="">Personalizado</option>
+                                            {% for s in servicos %}
+                                            <option value="{{ s[0] }}" data-valor="{{ s[3] }}" data-nome="{{ s[1] }}"
+                                                data-tipo="{{ s[4] }}"
+                                                data-completo="{{ s[1] }} — R$ {{ '%.2f'|format(s[3])|replace('.', ',') }}"
+                                                class="servico-option">{{ s[1] }} — R$ {{
+                                                "%.2f"|format(s[3])|replace('.', ',') }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" style="font-size: 0.9em;">Descrição</label>
+                                        <input type="text" class="form-control form-control-sm"
+                                            name="descricao_personalizada" id="descPersonalizada"
+                                            placeholder="Descrição do item">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label" style="font-size: 0.9em;">Valor (R$) *</label>
+                                        <input type="number" class="form-control form-control-sm" name="valor_unitario"
+                                            id="valorUnitario" step="0.01" min="0" required>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <label class="form-label" style="font-size: 0.9em;">Qtd</label>
+                                        <input type="number" class="form-control form-control-sm" name="quantidade"
+                                            value="1" min="1" required>
+                                    </div>
+                                    <div class="col-md-1"
+                                        style="padding-top: 1rem; padding-bottom: 0.5rem; width: 5px;">
+                                        <button type="submit" class="btn btn-success-custom px-4 fw-bold py-0"
+                                            title="Adicionar" style="height: 31px; font-size: 1.25rem; line-height: 1;">
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {% if itens %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Serviço</th>
+                                <th>Descrição</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Valor Unit.</th>
+                                <th class="text-center">Qtd</th>
+                                <th class="text-end">Subtotal</th>
+                                <th class="text-end no-print">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in itens %}
+                            <tr>
+                                <td class="fw-500">{{ item[2] }}</td>
+                                <td class="text-secondary">{{ item[3] or '—' }}</td>
+                                <td>
+                                    {% if item[7] == 'Seguro' %}
+                                    <span class="badge-aprovado"><i class="bi bi-shield-check me-1"></i>Seguro</span>
+                                    {% else %}
+                                    <span class="badge-pendente"><i class="bi bi-person me-1"></i>Particular</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">R$ {{ "%.2f"|format(item[4])|replace('.', ',') }}</td>
+                                <td class="text-center">{{ item[5] }}</td>
+                                <td class="text-end fw-600" style="color: var(--accent-success);">
+                                    R$ {{ "%.2f"|format(item[6])|replace('.', ',') }}
+                                </td>
+                                <td class="text-end no-print">
+                                    <form action="/orcamentos/{{ orcamento[0] }}/remover_item/{{ item[0] }}"
+                                        method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger-custom"
+                                            onclick="return confirm('Remover este item?')">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <!-- Linha TOTAL dentro do tbody para não repetir em cada página -->
+                            <tr style="border-top: 2px solid var(--accent-primary);">
+                                <td colspan="3" class="text-end fw-700" style="font-size: 1.1rem; white-space: nowrap;">
+                                    TOTAL:</td>
+                                <td colspan="3" class="text-end fw-700"
+                                    style="font-size: 1.3rem; color: var(--accent-success); white-space: nowrap;">
+                                    R$ {{ "%.2f"|format(orcamento[12])|replace('.', ',') }}
+                                </td>
+                                <td class="no-print"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-inbox fs-1" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                    <p class="text-secondary mt-2">Nenhum item adicionado.</p>
+                    <button class="btn btn-success-custom btn-sm" data-bs-toggle="collapse"
+                        data-bs-target="#formAdicionarItem">
+                        <i class="bi bi-plus-lg me-1"></i> Adicionar Primeiro Item
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel Lateral (Status + Observações) -->
+    <div class="col-lg-4 no-print">
+        <!-- Alterar Status -->
+        <div class="card mb-4">
+            <div class="card-header accent-orange">
+                <i class="bi bi-gear me-2"></i> Alterar Status
+            </div>
+            <div class="card-body">
+                <form action="/orcamentos/{{ orcamento[0] }}/status" method="POST">
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="status" value="Pendente"
+                            class="btn {% if orcamento[11] == 'Pendente' %}btn-warning-custom{% else %}btn-outline-custom{% endif %}">
+                            <i class="bi bi-hourglass-split me-1"></i> Pendente
+                        </button>
+                        <button type="submit" name="status" value="Aprovado"
+                            class="btn {% if orcamento[11] == 'Aprovado' %}btn-success-custom{% else %}btn-outline-custom{% endif %}">
+                            <i class="bi bi-check-circle me-1"></i> Aprovado
+                        </button>
+                        <button type="submit" name="status" value="Recusado"
+                            class="btn {% if orcamento[11] == 'Recusado' %}btn-danger-custom{% else %}btn-outline-custom{% endif %}"
+                            style="{% if orcamento[11] == 'Recusado' %}background: var(--accent-danger); color: white;{% endif %}">
+                            <i class="bi bi-x-circle me-1"></i> Recusado
+                        </button>
+                        <button type="submit" name="status" value="Concluído"
+                            class="btn {% if orcamento[11] == 'Concluído' %}btn-primary-custom{% else %}btn-outline-custom{% endif %}">
+                            <i class="bi bi-trophy me-1"></i> Concluído
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="card">
+            <div class="card-header accent-blue">
+                <i class="bi bi-chat-text me-2"></i> Observações
+            </div>
+            <div class="card-body">
+                <form action="/orcamentos/{{ orcamento[0] }}/observacoes" method="POST">
+                    <div class="mb-3">
+                        <textarea class="form-control" name="observacoes" rows="5"
+                            placeholder="Anotações sobre o orçamento...">{{ orcamento[13] or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary-custom w-100">
+                        <i class="bi bi-save me-1"></i> Salvar Observações
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Observações + Assinatura (sempre em nova página após itens) -->
+<div class="print-only print-break-before">
+
+    {% if orcamento[13] %}
+    <div class="card mt-3 mb-4">
+        <div class="card-header">
+            <strong>Observações</strong>
+        </div>
+        <div class="card-body">
+            <p style="white-space: pre-wrap;">{{ orcamento[13] }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Assinatura e Carimbo -->
+    <div style="margin-top: 180px;">
+        <div class="row">
+            <div class="col-6 text-center">
+                <div style="border-top: 1px solid #000; margin: 0 30px; padding-top: 8px;">
+                    <strong>Assinatura do Cliente</strong><br>
+                    <small>{{ orcamento[3] }}</small><br>
+                    <small>CPF: {{ orcamento[5] }}</small>
+                </div>
+            </div>
+            <div class="col-6 text-center">
+                <div style="border-top: 1px solid #000; margin: 0 30px; padding-top: 8px;">
+                    <strong>Carimbo da Loja</strong><br>
+                    <small>STETIC CAR</small><br>
+                    <small>Estética Automotiva</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filtrarServicos() {
+        const tipoSelect = document.getElementById('selectTipo');
+        const servicoSelect = document.getElementById('selectServico');
+        const tipoEscolhido = tipoSelect.value;
+        const options = servicoSelect.querySelectorAll('.servico-option');
+
+        // Limpa o select de servico e os campos vinculados
+        servicoSelect.value = "";
+        preencherValor();
+
+        if (tipoEscolhido === "") {
+            servicoSelect.disabled = true;
+        } else {
+            servicoSelect.disabled = false;
+            options.forEach(opt => {
+                if (opt.getAttribute('data-tipo') === tipoEscolhido) {
+                    opt.hidden = false;
+                } else {
+                    opt.hidden = true;
+                }
+            });
+        }
+    }
+
+    function restaurarNomes() {
+        const select = document.getElementById('selectServico');
+        Array.from(select.options).forEach(opt => {
+            if (opt.value && opt.dataset.completo) {
+                opt.textContent = opt.dataset.completo;
+            }
+        });
+    }
+
+    function preencherValor() {
+        const select = document.getElementById('selectServico');
+        const selectedOption = select.options[select.selectedIndex];
+
+        // Sempre restaura os nomes originais primeiro
+        restaurarNomes();
+
+        const valor = selectedOption.getAttribute('data-valor');
+        const valorInput = document.getElementById('valorUnitario');
+        const descInput = document.getElementById('descPersonalizada');
+
+        if (valor) {
+            valorInput.value = parseFloat(valor).toFixed(2);
+            descInput.placeholder = selectedOption.getAttribute('data-nome');
+
+            // Altera apenas o texto da opção selecionada para mostrar só o nome
+            selectedOption.textContent = selectedOption.getAttribute('data-nome');
+        } else {
+            valorInput.value = '';
+            descInput.placeholder = 'Descrição do item';
+        }
+    }
+</script>
+{% endblock %}

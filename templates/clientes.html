@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - STETIC CAR{% endblock %}
+
+{% block content %}
+<h2 class="fw-bold mb-4"><i class="bi bi-people-fill me-2" style="color: var(--accent-primary);"></i>Clientes</h2>
+
+<div class="row g-4">
+    <!-- Formulário de Cadastro/Edição -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header accent-purple">
+                <i class="bi bi-{% if cliente_editar %}pencil-square{% else %}person-plus{% endif %} me-2"></i>
+                {% if cliente_editar %}Editar Cliente{% else %}Cadastrar Novo Cliente{% endif %}
+            </div>
+            <div class="card-body p-3">
+                <form action="{% if cliente_editar %}/clientes/editar/{{ cliente_editar[0] }}{% else %}/clientes/cadastrar{% endif %}" method="POST">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="nome" name="nome" 
+                               value="{{ cliente_editar[1] if cliente_editar else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cpf" class="form-label">CPF *</label>
+                        <input type="text" class="form-control" id="cpf" name="cpf" 
+                               value="{{ cliente_editar[4] if cliente_editar else '' }}" required
+                               placeholder="000.000.000-00">
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefone" class="form-label">Telefone</label>
+                        <input type="text" class="form-control" id="telefone" name="telefone" 
+                               value="{{ cliente_editar[2] if cliente_editar else '' }}"
+                               placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ cliente_editar[3] if cliente_editar else '' }}">
+                    </div>
+
+                    <p class="section-divider"><i class="bi bi-geo-alt me-1"></i> Endereço</p>
+
+                    <div class="mb-3">
+                        <label for="cep" class="form-label">CEP</label>
+                        <input type="text" class="form-control" id="cep" name="cep" 
+                               value="{{ cliente_editar[5] if cliente_editar else '' }}"
+                               onblur="buscaCep()" placeholder="00000-000">
+                    </div>
+                    <div class="mb-3">
+                        <label for="rua" class="form-label">Rua</label>
+                        <input type="text" class="form-control" id="rua" name="rua" 
+                               value="{{ cliente_editar[6] if cliente_editar else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="bairro" class="form-label">Bairro</label>
+                        <input type="text" class="form-control" id="bairro" name="bairro" 
+                               value="{{ cliente_editar[7] if cliente_editar else '' }}">
+                    </div>
+                    <div class="row">
+                        <div class="col-8 mb-3">
+                            <label for="cidade" class="form-label">Cidade</label>
+                            <input type="text" class="form-control" id="cidade" name="cidade" 
+                                   value="{{ cliente_editar[8] if cliente_editar else '' }}">
+                        </div>
+                        <div class="col-4 mb-3">
+                            <label for="estado" class="form-label">UF</label>
+                            <input type="text" class="form-control" id="estado" name="estado" 
+                                   value="{{ cliente_editar[9] if cliente_editar else '' }}" maxlength="2">
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        {% if cliente_editar %}
+                            <button type="submit" class="btn btn-warning-custom">
+                                <i class="bi bi-check-lg me-1"></i> Atualizar Cliente
+                            </button>
+                            <a href="/clientes" class="btn btn-outline-custom">Cancelar</a>
+                        {% else %}
+                            <button type="submit" class="btn btn-success-custom">
+                                <i class="bi bi-plus-lg me-1"></i> Cadastrar Cliente
+                            </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Clientes -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header accent-blue d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul me-2"></i>Clientes Cadastrados</span>
+            </div>
+            <div class="card-body p-3">
+                <!-- Busca -->
+                <form method="GET" action="/clientes" class="mb-3">
+                    <div class="input-group search-wrapper">
+                        <input type="text" name="busca" class="form-control" 
+                               placeholder="Buscar por nome ou CPF..." 
+                               value="{{ busca if busca else '' }}">
+                        <button class="btn btn-primary-custom" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        {% if busca %}
+                        <a href="/clientes" class="btn btn-outline-custom ms-2">Limpar</a>
+                        {% endif %}
+                    </div>
+                </form>
+
+                {% if clientes %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>CPF</th>
+                                <th>Telefone</th>
+                                <th>Cidade</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in clientes %}
+                            <tr>
+                                <td class="fw-500">{{ c[1] }}</td>
+                                <td>{{ c[4] }}</td>
+                                <td>{{ c[2] or '—' }}</td>
+                                <td>{{ c[8] or '—' }}</td>
+                                <td class="text-end">
+                                    <a href="/clientes/editar/{{ c[0] }}" class="btn btn-sm btn-outline-custom me-1" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="/clientes/excluir/{{ c[0] }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger-custom" 
+                                                onclick="return confirm('Tem certeza que deseja excluir este cliente?')"
+                                                title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-people fs-1" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                    <p class="text-secondary mt-2">Nenhum cliente encontrado.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function limpaFormularioCep() {
+        document.getElementById('rua').value = "";
+        document.getElementById('bairro').value = "";
+        document.getElementById('cidade').value = "";
+        document.getElementById('estado').value = "";
+    }
+
+    function meuCallback(conteudo) {
+        if (!("erro" in conteudo)) {
+            document.getElementById('rua').value = conteudo.logradouro;
+            document.getElementById('bairro').value = conteudo.bairro;
+            document.getElementById('cidade').value = conteudo.localidade;
+            document.getElementById('estado').value = conteudo.uf;
+        } else {
+            limpaFormularioCep();
+            alert("CEP não encontrado.");
+        }
+    }
+
+    function buscaCep() {
+        var valor = document.getElementById('cep').value.replace(/\D/g, '');
+        if (valor !== "") {
+            var validacep = /^[0-9]{8}$/;
+            if (validacep.test(valor)) {
+                document.getElementById('rua').value = "...";
+                document.getElementById('bairro').value = "...";
+                document.getElementById('cidade').value = "...";
+                document.getElementById('estado').value = "...";
+
+                var script = document.createElement('script');
+                script.src = 'https://viacep.com.br/ws/' + valor + '/json/?callback=meuCallback';
+                document.body.appendChild(script);
+            } else {
+                limpaFormularioCep();
+                alert("Formato de CEP inválido.");
+            }
+        } else {
+            limpaFormularioCep();
+        }
+    }
+</script>
+{% endblock %}
