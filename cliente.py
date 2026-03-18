@@ -1,6 +1,4 @@
-# cliente.py
-from db import conectar
-import sqlite3
+from db import conectar, DatabaseError, IntegrityError
 
 
 def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, estado):
@@ -22,12 +20,12 @@ def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, esta
         ''', (nome, telefone, email, cpf, cep, rua, bairro, cidade, estado))
         conexao.commit()
         return True, "Cliente cadastrado com sucesso."
-    except sqlite3.IntegrityError as e:
-        if "UNIQUE constraint failed: clientes.cpf" in str(e):
+    except IntegrityError as e:
+        if "UNIQUE constraint failed: clientes.cpf" in str(e) or "duplicate key" in str(e).lower():
             return False, "Erro: CPF já cadastrado."
         else:
             return False, f"Erro ao cadastrar cliente: {e}"
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao cadastrar cliente: {e}"
     finally:
         conexao.close()
@@ -56,7 +54,7 @@ def listar_clientes(termo_busca=None):
 
         cursor.execute(query, params)
         return cursor.fetchall()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao listar clientes: {e}")
         return []
     finally:
@@ -76,7 +74,7 @@ def buscar_cliente_por_id(id_cliente):
             FROM clientes WHERE id = ?
         ''', (id_cliente,))
         return cursor.fetchone()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao buscar cliente: {e}")
         return None
     finally:
@@ -104,12 +102,12 @@ def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, bairro, cidade, 
         ''', (nome, telefone, email, cpf, cep, rua, bairro, cidade, estado, id))
         conexao.commit()
         return True, "Cliente atualizado com sucesso."
-    except sqlite3.IntegrityError as e:
-        if "UNIQUE constraint failed: clientes.cpf" in str(e):
+    except IntegrityError as e:
+        if "UNIQUE constraint failed: clientes.cpf" in str(e) or "duplicate key" in str(e).lower():
             return False, "Erro: CPF já cadastrado para outro cliente."
         else:
             return False, f"Erro ao atualizar cliente: {e}"
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao atualizar cliente: {e}"
     finally:
         conexao.close()
@@ -123,7 +121,7 @@ def excluir_cliente(id):
         cursor.execute('DELETE FROM clientes WHERE id = ?', (id,))
         conexao.commit()
         return True, "Cliente excluído com sucesso."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao excluir cliente: {e}"
     finally:
         conexao.close()

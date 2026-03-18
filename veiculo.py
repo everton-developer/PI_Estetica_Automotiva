@@ -1,6 +1,4 @@
-# veiculo.py
-from db import conectar
-import sqlite3
+from db import conectar, DatabaseError, IntegrityError
 
 
 def cadastrar_veiculo(marca, modelo, ano, cor, placa, cliente_id):
@@ -18,12 +16,12 @@ def cadastrar_veiculo(marca, modelo, ano, cor, placa, cliente_id):
         ''', (marca, modelo, ano, cor, placa, cliente_id))
         conexao.commit()
         return True, "Veículo cadastrado com sucesso."
-    except sqlite3.IntegrityError as e:
-        if "UNIQUE constraint failed: veiculos.placa" in str(e):
+    except IntegrityError as e:
+        if "UNIQUE constraint failed: veiculos.placa" in str(e) or "duplicate key" in str(e).lower():
             return False, "Erro: Placa já cadastrada."
         else:
             return False, f"Erro ao cadastrar veículo: {e}"
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao cadastrar veículo: {e}"
     finally:
         conexao.close()
@@ -55,7 +53,7 @@ def listar_veiculos(filtro=None):
         query += ' ORDER BY veiculos.marca, veiculos.modelo'
         cursor.execute(query, params)
         return cursor.fetchall()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao listar veículos: {e}")
         return []
     finally:
@@ -79,7 +77,7 @@ def buscar_veiculo_por_id(id):
             WHERE veiculos.id = ?
         ''', (id,))
         return cursor.fetchone()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao buscar veículo: {e}")
         return None
     finally:
@@ -100,7 +98,7 @@ def listar_veiculos_por_cliente(cliente_id):
             ORDER BY marca, modelo
         ''', (cliente_id,))
         return cursor.fetchall()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao listar veículos do cliente: {e}")
         return []
     finally:
@@ -123,12 +121,12 @@ def editar_veiculo(id, marca, modelo, ano, cor, placa, cliente_id):
         ''', (marca, modelo, ano, cor, placa, cliente_id, id))
         conexao.commit()
         return True, "Veículo atualizado com sucesso."
-    except sqlite3.IntegrityError as e:
-        if "UNIQUE constraint failed: veiculos.placa" in str(e):
+    except IntegrityError as e:
+        if "UNIQUE constraint failed: veiculos.placa" in str(e) or "duplicate key" in str(e).lower():
             return False, "Erro: Placa já cadastrada para outro veículo."
         else:
             return False, f"Erro ao atualizar veículo: {e}"
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao atualizar veículo: {e}"
     finally:
         conexao.close()
@@ -142,7 +140,7 @@ def excluir_veiculo(id):
         cursor.execute('DELETE FROM veiculos WHERE id = ?', (id,))
         conexao.commit()
         return True, "Veículo excluído com sucesso."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao excluir veículo: {e}"
     finally:
         conexao.close()

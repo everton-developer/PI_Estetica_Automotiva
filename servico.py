@@ -1,6 +1,4 @@
-# servico.py
-from db import conectar
-import sqlite3
+from db import conectar, DatabaseError
 
 
 def cadastrar_servico(nome, descricao, valor, tipo='Particular'):
@@ -17,7 +15,7 @@ def cadastrar_servico(nome, descricao, valor, tipo='Particular'):
         ''', (nome, descricao, valor, tipo))
         conexao.commit()
         return True, "Serviço cadastrado com sucesso."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao cadastrar serviço: {e}"
     finally:
         conexao.close()
@@ -42,7 +40,7 @@ def listar_servicos(filtro=None):
         query += ' ORDER BY nome'
         cursor.execute(query, params)
         return cursor.fetchall()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao listar serviços: {e}")
         return []
     finally:
@@ -59,7 +57,7 @@ def buscar_servico_por_id(id):
     try:
         cursor.execute('SELECT id, nome, descricao, valor, tipo FROM servicos WHERE id = ?', (id,))
         return cursor.fetchone()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao buscar serviço: {e}")
         return None
     finally:
@@ -80,7 +78,7 @@ def editar_servico(id, nome, descricao, valor, tipo='Particular'):
         ''', (nome, descricao, valor, tipo, id))
         conexao.commit()
         return True, "Serviço atualizado com sucesso."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao atualizar serviço: {e}"
     finally:
         conexao.close()
@@ -94,7 +92,7 @@ def excluir_servico(id):
         cursor.execute('DELETE FROM servicos WHERE id = ?', (id,))
         conexao.commit()
         return True, "Serviço excluído com sucesso."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao excluir serviço: {e}"
     finally:
         conexao.close()

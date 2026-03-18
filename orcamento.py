@@ -1,6 +1,4 @@
-# orcamento.py
-from db import conectar
-import sqlite3
+from db import conectar, DatabaseError
 from datetime import datetime
 
 
@@ -34,7 +32,7 @@ def criar_orcamento(cliente_id, veiculo_id, observacoes=''):
         conexao.commit()
         orcamento_id = cursor.lastrowid
         return True, "Orçamento criado com sucesso.", orcamento_id
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao criar orçamento: {e}", None
     finally:
         conexao.close()
@@ -74,7 +72,7 @@ def listar_orcamentos(filtro=None, status_filtro=None):
         query += ' ORDER BY data_atualizacao DESC, id DESC'
         cursor.execute(query, params)
         return cursor.fetchall()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao listar orçamentos: {e}")
         return []
     finally:
@@ -102,7 +100,7 @@ def buscar_orcamento_por_id(id):
             WHERE id = ?
         ''', (id,))
         return cursor.fetchone()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao buscar orçamento: {e}")
         return None
     finally:
@@ -129,7 +127,7 @@ def listar_itens_orcamento(orcamento_id):
             ORDER BY id
         ''', (orcamento_id,))
         return cursor.fetchall()
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao listar itens do orçamento: {e}")
         return []
     finally:
@@ -161,7 +159,7 @@ def adicionar_item(orcamento_id, servico_id, descricao_personalizada, valor_unit
 
         conexao.commit()
         return True, "Item adicionado ao orçamento."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao adicionar item: {e}"
     finally:
         conexao.close()
@@ -186,7 +184,7 @@ def remover_item(item_id):
 
         conexao.commit()
         return True, "Item removido do orçamento."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao remover item: {e}"
     finally:
         conexao.close()
@@ -205,7 +203,7 @@ def atualizar_status(id, novo_status):
         cursor.execute('UPDATE orcamentos SET status = ?, data_atualizacao = ? WHERE id = ?', (novo_status, agora, id))
         conexao.commit()
         return True, f"Status atualizado para '{novo_status}'."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao atualizar status: {e}"
     finally:
         conexao.close()
@@ -220,7 +218,7 @@ def atualizar_observacoes(id, observacoes):
         cursor.execute('UPDATE orcamentos SET observacoes = ?, data_atualizacao = ? WHERE id = ?', (observacoes, agora, id))
         conexao.commit()
         return True, "Observações atualizadas."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao atualizar observações: {e}"
     finally:
         conexao.close()
@@ -234,7 +232,7 @@ def excluir_orcamento(id):
         cursor.execute('DELETE FROM orcamentos WHERE id = ?', (id,))
         conexao.commit()
         return True, "Orçamento excluído com sucesso."
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         return False, f"Erro ao excluir orçamento: {e}"
     finally:
         conexao.close()
@@ -252,7 +250,7 @@ def contar_por_status():
             SELECT status, COUNT(*) FROM orcamentos GROUP BY status
         ''')
         return dict(cursor.fetchall())
-    except sqlite3.Error as e:
+    except DatabaseError as e:
         print(f"Erro ao contar orçamentos: {e}")
         return {}
     finally:

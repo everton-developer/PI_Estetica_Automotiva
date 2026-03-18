@@ -4,7 +4,7 @@ import cliente
 import servico
 import veiculo
 import orcamento
-from db import criar_tabelas, conectar
+from db import criar_tabelas, conectar, DatabaseError
 
 app = Flask(__name__)
 app.secret_key = 'l_brothers_sistema_2025'
@@ -21,6 +21,9 @@ index_bp = Blueprint('index', __name__)
 def home():
     # Dados para o dashboard
     conexao = conectar()
+    if not conexao:
+        return "Erro ao conectar ao banco de dados.", 500
+        
     cursor = conexao.cursor()
     try:
         cursor.execute('SELECT COUNT(*) FROM clientes')
@@ -40,6 +43,10 @@ def home():
 
         cursor.execute("SELECT COUNT(*) FROM orcamentos WHERE status = 'Aprovado'")
         orcamentos_aprovados = cursor.fetchone()[0]
+    except DatabaseError as e:
+        print(f"Erro no dashboard: {e}")
+        total_clientes = total_veiculos = total_servicos = total_orcamentos = 0
+        orcamentos_pendentes = orcamentos_aprovados = 0
     finally:
         conexao.close()
 
