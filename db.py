@@ -5,10 +5,30 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'banco.db')
 
+# No Vercel, o diretório raiz é somente leitura. Precisamos usar o /tmp.
+IS_VERCEL = os.environ.get('VERCEL') == '1'
+
+if IS_VERCEL:
+    DB_PATH = '/tmp/banco.db'
+    # Se o banco não existir no /tmp, copiamos o original se ele existir no BASE_DIR
+    if not os.path.exists(DB_PATH):
+        original_db = os.path.join(BASE_DIR, 'banco.db')
+        if os.path.exists(original_db):
+            import shutil
+            try:
+                shutil.copy2(original_db, DB_PATH)
+                print(f"Banco de dados copiado para {DB_PATH}")
+            except Exception as e:
+                print(f"Erro ao copiar banco para /tmp: {e}")
+
 
 def conectar():
     """Cria e retorna uma conexão com o banco de dados SQLite."""
     try:
+        # No Vercel, garantimos que o diretório exista (embora /tmp sempre exista)
+        if IS_VERCEL:
+            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            
         conexao = sqlite3.connect(DB_PATH)
         conexao.execute("PRAGMA foreign_keys = ON")  # Ativa chaves estrangeiras
         return conexao
