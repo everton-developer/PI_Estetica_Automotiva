@@ -1,11 +1,14 @@
 from db import conectar, DatabaseError, IntegrityError
-
+import uuid
 
 def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, estado):
     """Cadastra um novo cliente no banco de dados."""
     conexao = conectar()
     cursor = conexao.cursor()
     try:
+        if not cpf or cpf.strip() == "":
+            cpf = f"N/A-{uuid.uuid4().hex[:8]}"
+
         cursor.execute('SELECT nome, cpf FROM clientes WHERE LOWER(nome) = LOWER(?) OR cpf = ?', (nome, cpf))
         existing = cursor.fetchall()
         for ext_nome, ext_cpf in existing:
@@ -53,7 +56,15 @@ def listar_clientes(termo_busca=None):
             query += ' ORDER BY nome'
 
         cursor.execute(query, params)
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        
+        resultado = []
+        for row in rows:
+            row_list = list(row)
+            if row_list[4] and row_list[4].startswith("N/A-"):
+                row_list[4] = ""
+            resultado.append(tuple(row_list))
+        return resultado
     except DatabaseError as e:
         print(f"Erro ao listar clientes: {e}")
         return []
@@ -73,7 +84,13 @@ def buscar_cliente_por_id(id_cliente):
             SELECT id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado 
             FROM clientes WHERE id = ?
         ''', (id_cliente,))
-        return cursor.fetchone()
+        row = cursor.fetchone()
+        if row:
+            row_list = list(row)
+            if row_list[4] and row_list[4].startswith("N/A-"):
+                row_list[4] = ""
+            return tuple(row_list)
+        return None
     except DatabaseError as e:
         print(f"Erro ao buscar cliente: {e}")
         return None
@@ -86,6 +103,9 @@ def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, bairro, cidade, 
     conexao = conectar()
     cursor = conexao.cursor()
     try:
+        if not cpf or cpf.strip() == "":
+            cpf = f"N/A-{uuid.uuid4().hex[:8]}"
+
         cursor.execute('SELECT nome, cpf FROM clientes WHERE (LOWER(nome) = LOWER(?) OR cpf = ?) AND id != ?', (nome, cpf, id))
         existing = cursor.fetchall()
         for ext_nome, ext_cpf in existing:

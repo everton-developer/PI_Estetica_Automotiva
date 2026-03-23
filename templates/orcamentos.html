@@ -79,7 +79,7 @@
                 <td class="text-end fw-600" style="color: var(--accent-success);">
                     R$ {{ "%.2f"|format(o[6])|replace('.', ',') }}
                 </td>
-                <td class="text-end" onclick="event.stopPropagation();">
+                <td class="text-end text-nowrap" onclick="event.stopPropagation();">
                     <a href="/orcamentos/{{ o[0] }}" class="btn btn-sm btn-primary-custom me-1" title="Ver Detalhes">
                         <i class="bi bi-eye"></i>
                     </a>

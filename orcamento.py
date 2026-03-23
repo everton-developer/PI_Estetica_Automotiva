@@ -50,7 +50,7 @@ def listar_orcamentos(filtro=None, status_filtro=None):
             SELECT id, cliente_nome, 
                    veiculo_placa,
                    veiculo_marca || ' ' || veiculo_modelo AS veiculo_desc,
-                   strftime('%d/%m/%Y %H:%M', data_atualizacao) AS data_formatada, status, 
+                   data_atualizacao AS data_formatada, status, 
                    valor_total, observacoes
             FROM orcamentos
         '''
@@ -71,7 +71,20 @@ def listar_orcamentos(filtro=None, status_filtro=None):
 
         query += ' ORDER BY data_atualizacao DESC, id DESC'
         cursor.execute(query, params)
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        
+        # Formata a data de atualização pelo Python para ser compatível com SQLite e Postgres
+        resultado = []
+        for row in rows:
+            row_list = list(row)
+            try:
+                # O banco armazena no formato '%Y-%m-%d %H:%M'
+                dt_obj = datetime.strptime(str(row_list[4]), '%Y-%m-%d %H:%M')
+                row_list[4] = dt_obj.strftime('%d/%m/%Y %H:%M')
+            except ValueError:
+                pass # Caso venha diferente do esperado (ex: datas truncadas), mantém original
+            resultado.append(tuple(row_list))
+        return resultado
     except DatabaseError as e:
         print(f"Erro ao listar orçamentos: {e}")
         return []
@@ -94,12 +107,22 @@ def buscar_orcamento_por_id(id):
                    veiculo_placa,
                    veiculo_marca || ' ' || veiculo_modelo AS veiculo_desc,
                    veiculo_ano, veiculo_cor,
-                   strftime('%d/%m/%Y %H:%M', data_atualizacao) AS data_formatada, status, 
+                   data_atualizacao AS data_formatada, status, 
                    valor_total, observacoes
             FROM orcamentos
             WHERE id = ?
         ''', (id,))
-        return cursor.fetchone()
+        row = cursor.fetchone()
+        if row:
+            row_list = list(row)
+            # data_formatada está no índice 10
+            try:
+                dt_obj = datetime.strptime(str(row_list[10]), '%Y-%m-%d %H:%M')
+                row_list[10] = dt_obj.strftime('%d/%m/%Y %H:%M')
+            except ValueError:
+                pass
+            return tuple(row_list)
+        return None
     except DatabaseError as e:
         print(f"Erro ao buscar orçamento: {e}")
         return None
