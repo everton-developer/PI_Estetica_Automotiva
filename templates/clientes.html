@@ -21,9 +21,9 @@
                                value="{{ cliente_editar[1] if cliente_editar else '' }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="cpf" class="form-label">CPF</label>
+                        <label for="cpf" class="form-label">CPF *</label>
                         <input type="text" class="form-control" id="cpf" name="cpf" 
-                               value="{{ cliente_editar[4] if cliente_editar else '' }}"
+                               value="{{ cliente_editar[4] if cliente_editar else '' }}" required
                                placeholder="000.000.000-00">
                     </div>
                     <div class="mb-3">

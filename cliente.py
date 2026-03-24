@@ -1,13 +1,30 @@
 from db import conectar, DatabaseError, IntegrityError
-import uuid
+import re
+
+def validar_cpf(cpf: str) -> bool:
+    cpf = re.sub(r'\D', '', str(cpf))
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+    # Primeiro dígito
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    resto = (soma * 10) % 11
+    if resto == 10: resto = 0
+    if resto != int(cpf[9]): return False
+    # Segundo dígito
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    resto = (soma * 10) % 11
+    if resto == 10: resto = 0
+    if resto != int(cpf[10]): return False
+    return True
 
 def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, estado):
     """Cadastra um novo cliente no banco de dados."""
+    if not validar_cpf(cpf):
+        return False, "Erro: CPF inválido."
+
     conexao = conectar()
     cursor = conexao.cursor()
     try:
-        if not cpf or cpf.strip() == "":
-            cpf = f"N/A-{uuid.uuid4().hex[:8]}"
 
         cursor.execute('SELECT nome, cpf FROM clientes WHERE LOWER(nome) = LOWER(?) OR cpf = ?', (nome, cpf))
         existing = cursor.fetchall()
@@ -56,15 +73,7 @@ def listar_clientes(termo_busca=None):
             query += ' ORDER BY nome'
 
         cursor.execute(query, params)
-        rows = cursor.fetchall()
-        
-        resultado = []
-        for row in rows:
-            row_list = list(row)
-            if row_list[4] and row_list[4].startswith("N/A-"):
-                row_list[4] = ""
-            resultado.append(tuple(row_list))
-        return resultado
+        return cursor.fetchall()
     except DatabaseError as e:
         print(f"Erro ao listar clientes: {e}")
         return []
@@ -84,13 +93,7 @@ def buscar_cliente_por_id(id_cliente):
             SELECT id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado 
             FROM clientes WHERE id = ?
         ''', (id_cliente,))
-        row = cursor.fetchone()
-        if row:
-            row_list = list(row)
-            if row_list[4] and row_list[4].startswith("N/A-"):
-                row_list[4] = ""
-            return tuple(row_list)
-        return None
+        return cursor.fetchone()
     except DatabaseError as e:
         print(f"Erro ao buscar cliente: {e}")
         return None
@@ -100,11 +103,12 @@ def buscar_cliente_por_id(id_cliente):
 
 def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado):
     """Atualiza os dados de um cliente existente."""
+    if not validar_cpf(cpf):
+        return False, "Erro: CPF inválido."
+
     conexao = conectar()
     cursor = conexao.cursor()
     try:
-        if not cpf or cpf.strip() == "":
-            cpf = f"N/A-{uuid.uuid4().hex[:8]}"
 
         cursor.execute('SELECT nome, cpf FROM clientes WHERE (LOWER(nome) = LOWER(?) OR cpf = ?) AND id != ?', (nome, cpf, id))
         existing = cursor.fetchall()
