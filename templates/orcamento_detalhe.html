@@ -3,9 +3,9 @@
 {% block title %}Orçamento #{{ orcamento[0] }} - Studio Alex Dantas Martelinho de Ouro{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4 no-print">
-    <div>
-        <a href="/orcamentos" class="btn btn-outline-custom btn-sm mb-2">
+<div class="mb-4 no-print">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <a href="/orcamentos" class="btn btn-outline-custom btn-sm">
             <i class="bi bi-arrow-left me-1"></i> Voltar
         </a>
         <h2 class="fw-bold mb-0">
@@ -14,20 +14,19 @@
         </h2>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-        <button class="btn btn-outline-custom" onclick="window.print()">
+        <button class="btn btn-outline-custom btn-sm" onclick="window.print()">
             <i class="bi bi-printer me-1"></i> Imprimir
         </button>
-        <button class="btn btn-outline-custom" id="btnWhatsApp" onclick="compartilharWhatsApp()"
+        <button class="btn btn-sm btn-outline-custom" id="btnWhatsApp" onclick="compartilharWhatsApp()"
             style="border-color: #25d366; color: #25d366;">
             <i class="bi bi-whatsapp me-1"></i> WhatsApp
         </button>
-        <button class="btn btn-outline-custom" id="btnEmail" onclick="compartilharEmail()"
+        <button class="btn btn-sm btn-outline-custom" id="btnEmail" onclick="compartilharEmail()"
             style="border-color: var(--accent-info); color: var(--accent-info);">
             <i class="bi bi-envelope me-1"></i> E-mail
         </button>
         <form action="/orcamentos/excluir/{{ orcamento[0] }}" method="POST" class="d-flex">
-            <button type="submit" class="btn btn-danger-custom"
-                style="padding: 0.6rem 1.2rem;"
+            <button type="submit" class="btn btn-sm btn-danger-custom"
                 onclick="return confirm('Tem certeza que deseja excluir este orçamento?')">
                 <i class="bi bi-trash me-1"></i> Excluir
             </button>
