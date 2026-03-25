@@ -6,7 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Studio Alex Dantas Martelinho de Ouro{% endblock %}</title>
-    <meta name="description" content="Sistema de gestão de clientes e orçamentos - Studio Alex Dantas Martelinho de Ouro">
+    <meta name="description"
+        content="Sistema de gestão de clientes e orçamentos - Studio Alex Dantas Martelinho de Ouro">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icone.ico') }}">
@@ -548,6 +549,7 @@
             /* Numeração de páginas */
             @page {
                 margin: 15mm;
+
                 @bottom-center {
                     content: "Página " counter(page) " / " counter(pages);
                     font-size: 9pt;
@@ -635,7 +637,8 @@
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <img src="{{ url_for('static', filename='logo_transp.png') }}" alt="Studio Alex Dantas" style="height:38px; width:auto; margin-right:8px; vertical-align:middle;" /> STUDIO ALEX DANTAS
+                <img src="{{ url_for('static', filename='logo_transp.png') }}" alt="Studio Alex Dantas"
+                    style="height:38px; width:auto; vertical-align:middle;" />STUDIO ALEX DANTAS
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -721,10 +724,10 @@
             // Live Search (Filtro em tempo real para as tabelas)
             const searchInput = document.querySelector('input[name="busca"]');
             if (searchInput) {
-                searchInput.addEventListener('input', function(e) {
+                searchInput.addEventListener('input', function (e) {
                     const searchTerm = e.target.value.toLowerCase().trim();
                     const tableRows = document.querySelectorAll('table tbody tr');
-                    
+
                     if (!tableRows.length) return;
 
                     tableRows.forEach(row => {
@@ -736,7 +739,7 @@
 
                         // Busca o conteúdo de texto da linha inteira
                         const rowText = row.textContent.toLowerCase();
-                        
+
                         if (rowText.includes(searchTerm)) {
                             row.style.display = '';
                         } else {
