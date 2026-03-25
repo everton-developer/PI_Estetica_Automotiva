@@ -5,8 +5,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}STETIC CAR - Estética Automotiva{% endblock %}</title>
-    <meta name="description" content="Sistema de gestão de clientes e orçamentos - STETIC CAR - Estética Automotiva">
+    <title>{% block title %}Studio Alex Dantas Martelinho de Ouro{% endblock %}</title>
+    <meta name="description" content="Sistema de gestão de clientes e orçamentos - Studio Alex Dantas Martelinho de Ouro">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icone.ico') }}">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -632,7 +635,7 @@
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-car-front-fill"></i> STETIC CAR
+                <img src="{{ url_for('static', filename='logo_transp.png') }}" alt="Studio Alex Dantas" style="height:38px; width:auto; margin-right:8px; vertical-align:middle;" /> STUDIO ALEX DANTAS
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -684,7 +687,7 @@
     {% block modals %}{% endblock %}
 
     <footer>
-        <p>&copy; 2026 - STETIC CAR - Estética Automotiva</p>
+        <p>&copy; 2026 - Studio Alex Dantas Martelinho de Ouro</p>
     </footer>
 
     <!-- Bootstrap JS -->
