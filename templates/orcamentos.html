@@ -16,18 +16,17 @@
         <form method="GET" action="/orcamentos" class="row g-2 align-items-end">
             <div class="col-md-5">
                 <label class="form-label">Buscar</label>
-                <input type="text" name="busca" class="form-control" 
-                       placeholder="Buscar por cliente ou placa..." 
-                       value="{{ busca if busca else '' }}">
+                <input type="text" name="busca" class="form-control" placeholder="Buscar por cliente ou placa..."
+                    value="{{ busca if busca else '' }}">
             </div>
             <div class="col-md-4">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
-                    <option value="Todos" {% if status_filtro == 'Todos' %}selected{% endif %}>Todos</option>
-                    <option value="Pendente" {% if status_filtro == 'Pendente' %}selected{% endif %}>Pendente</option>
-                    <option value="Aprovado" {% if status_filtro == 'Aprovado' %}selected{% endif %}>Aprovado</option>
-                    <option value="Recusado" {% if status_filtro == 'Recusado' %}selected{% endif %}>Recusado</option>
-                    <option value="Concluído" {% if status_filtro == 'Concluído' %}selected{% endif %}>Concluído</option>
+                    <option value="Todos" {% if status_filtro=='Todos' %}selected{% endif %}>Todos</option>
+                    <option value="Pendente" {% if status_filtro=='Pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="Aprovado" {% if status_filtro=='Aprovado' %}selected{% endif %}>Aprovado</option>
+                    <option value="Recusado" {% if status_filtro=='Recusado' %}selected{% endif %}>Recusado</option>
+                    <option value="Concluído" {% if status_filtro=='Concluído' %}selected{% endif %}>Concluído</option>
                 </select>
             </div>
             <div class="col-md-3 d-flex gap-2">
@@ -67,13 +66,13 @@
                 <td>{{ o[4] }}</td>
                 <td>
                     {% if o[5] == 'Pendente' %}
-                        <span class="badge-pendente"><i class="bi bi-hourglass-split me-1"></i>Pendente</span>
+                    <span class="badge-pendente"><i class="bi bi-hourglass-split me-1"></i>Pendente</span>
                     {% elif o[5] == 'Aprovado' %}
-                        <span class="badge-aprovado"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
+                    <span class="badge-aprovado"><i class="bi bi-check-circle me-1"></i>Aprovado</span>
                     {% elif o[5] == 'Recusado' %}
-                        <span class="badge-recusado"><i class="bi bi-x-circle me-1"></i>Recusado</span>
+                    <span class="badge-recusado"><i class="bi bi-x-circle me-1"></i>Recusado</span>
                     {% elif o[5] == 'Concluído' %}
-                        <span class="badge-concluido"><i class="bi bi-trophy me-1"></i>Concluído</span>
+                    <span class="badge-concluido"><i class="bi bi-trophy me-1"></i>Concluído</span>
                     {% endif %}
                 </td>
                 <td class="text-end fw-600" style="color: var(--accent-success);">
@@ -84,8 +83,8 @@
                         <i class="bi bi-eye"></i>
                     </a>
                     <form action="/orcamentos/excluir/{{ o[0] }}" method="POST" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-danger-custom" 
-                                onclick="return confirm('Excluir este orçamento?')" title="Excluir">
+                        <button type="submit" class="btn btn-sm btn-danger-custom"
+                            onclick="return confirm('Excluir este orçamento?')" title="Excluir">
                             <i class="bi bi-trash"></i>
                         </button>
                     </form>
@@ -115,14 +114,16 @@
     <div class="modal-dialog">
         <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
             <div class="modal-header" style="border-bottom-color: var(--border-color);">
-                <h5 class="modal-title fw-bold"><i class="bi bi-receipt-cutoff me-2" style="color: var(--accent-success);"></i>Novo Orçamento</h5>
+                <h5 class="modal-title fw-bold"><i class="bi bi-receipt-cutoff me-2"
+                        style="color: var(--accent-success);"></i>Novo Orçamento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/orcamentos/criar" method="POST">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="cliente_id" class="form-label">Cliente *</label>
-                        <select class="form-select" id="modal_cliente_id" name="cliente_id" required onchange="carregarVeiculos()">
+                        <select class="form-select" id="modal_cliente_id" name="cliente_id" required
+                            onchange="carregarVeiculos()">
                             <option value="">Selecione o cliente...</option>
                             {% for cl in clientes %}
                             <option value="{{ cl[0] }}">{{ cl[1] }}</option>
@@ -138,7 +139,7 @@
                     <div class="mb-3">
                         <label for="observacoes" class="form-label">Observações</label>
                         <textarea class="form-control" id="observacoes" name="observacoes" rows="3"
-                                  placeholder="Observações sobre o orçamento..."></textarea>
+                            placeholder="Observações sobre o orçamento..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top-color: var(--border-color);">

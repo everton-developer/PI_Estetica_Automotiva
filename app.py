@@ -78,11 +78,13 @@ def cadastrar_cliente_route():
     cpf = request.form['cpf']
     cep = request.form.get('cep', '')
     rua = request.form.get('rua', '')
+    numero = request.form.get('numero', '')
+    complemento = request.form.get('complemento', '')
     bairro = request.form.get('bairro', '')
     cidade = request.form.get('cidade', '')
     estado = request.form.get('estado', '')
 
-    sucesso, mensagem = cliente.cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, estado)
+    sucesso, mensagem = cliente.cadastrar_cliente(nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado)
     flash(mensagem, "success" if sucesso else "error")
     return redirect('/clientes')
 
@@ -96,11 +98,13 @@ def editar_cliente_route(id):
         cpf = request.form['cpf']
         cep = request.form.get('cep', '')
         rua = request.form.get('rua', '')
+        numero = request.form.get('numero', '')
+        complemento = request.form.get('complemento', '')
         bairro = request.form.get('bairro', '')
         cidade = request.form.get('cidade', '')
         estado = request.form.get('estado', '')
 
-        sucesso, mensagem = cliente.atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado)
+        sucesso, mensagem = cliente.atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado)
         flash(mensagem, "success" if sucesso else "error")
         return redirect('/clientes')
     else:

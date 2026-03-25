@@ -17,7 +17,7 @@ def validar_cpf(cpf: str) -> bool:
     if resto != int(cpf[10]): return False
     return True
 
-def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, estado):
+def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado):
     """Cadastra um novo cliente no banco de dados."""
     if not validar_cpf(cpf):
         return False, "Erro: CPF inválido."
@@ -35,9 +35,9 @@ def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, bairro, cidade, esta
                 return False, "Erro: Cliente já cadastrado com este CPF."
 
         cursor.execute('''
-            INSERT INTO clientes (nome, telefone, email, cpf, cep, rua, bairro, cidade, estado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (nome, telefone, email, cpf, cep, rua, bairro, cidade, estado))
+            INSERT INTO clientes (nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado))
         conexao.commit()
         return True, "Cliente cadastrado com sucesso."
     except IntegrityError as e:
@@ -60,7 +60,7 @@ def listar_clientes(termo_busca=None):
     cursor = conexao.cursor()
     try:
         query = '''
-            SELECT id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado 
+            SELECT id, nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado 
             FROM clientes
         '''
         params = []
@@ -90,7 +90,7 @@ def buscar_cliente_por_id(id_cliente):
     cursor = conexao.cursor()
     try:
         cursor.execute('''
-            SELECT id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado 
+            SELECT id, nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado 
             FROM clientes WHERE id = ?
         ''', (id_cliente,))
         return cursor.fetchone()
@@ -101,7 +101,7 @@ def buscar_cliente_por_id(id_cliente):
         conexao.close()
 
 
-def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, bairro, cidade, estado):
+def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado):
     """Atualiza os dados de um cliente existente."""
     if not validar_cpf(cpf):
         return False, "Erro: CPF inválido."
@@ -121,9 +121,9 @@ def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, bairro, cidade, 
         cursor.execute('''
             UPDATE clientes
             SET nome = ?, telefone = ?, email = ?, cpf = ?, 
-                cep = ?, rua = ?, bairro = ?, cidade = ?, estado = ?
+                cep = ?, rua = ?, numero = ?, complemento = ?, bairro = ?, cidade = ?, estado = ?
             WHERE id = ?
-        ''', (nome, telefone, email, cpf, cep, rua, bairro, cidade, estado, id))
+        ''', (nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado, id))
         conexao.commit()
         return True, "Cliente atualizado com sucesso."
     except IntegrityError as e:

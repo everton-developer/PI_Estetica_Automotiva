@@ -131,6 +131,8 @@ def criar_tabelas():
             cpf TEXT UNIQUE NOT NULL,
             cep TEXT,
             rua TEXT,
+            numero TEXT,
+            complemento TEXT,
             bairro TEXT,
             cidade TEXT,
             estado TEXT

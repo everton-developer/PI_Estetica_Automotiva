@@ -79,6 +79,16 @@ def migrate():
         # Renomear novas
         cursor.execute('ALTER TABLE orcamentos_new RENAME TO orcamentos')
         cursor.execute('ALTER TABLE orcamento_itens_new RENAME TO orcamento_itens')
+
+        # Adiciona colunas numero e complemento à tabela clientes (se ainda não existirem)
+        try:
+            cursor.execute('ALTER TABLE clientes ADD COLUMN numero TEXT')
+        except Exception:
+            pass  # Coluna já existe
+        try:
+            cursor.execute('ALTER TABLE clientes ADD COLUMN complemento TEXT')
+        except Exception:
+            pass  # Coluna já existe
         
         conexao.commit()
         print("Migração concluída com sucesso.")

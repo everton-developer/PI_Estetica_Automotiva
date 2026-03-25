@@ -1,5 +1,7 @@
 from db import conectar, DatabaseError
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+BRT = timezone(timedelta(hours=-3))
 
 
 def criar_orcamento(cliente_id, veiculo_id, observacoes=''):
@@ -21,7 +23,7 @@ def criar_orcamento(cliente_id, veiculo_id, observacoes=''):
             return False, "Veículo não encontrado.", None
         veiculo_placa, veiculo_marca, veiculo_modelo, veiculo_ano, veiculo_cor = veiculo_ref
 
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M")
+        agora = datetime.now(tz=BRT).strftime("%Y-%m-%d %H:%M")
         cursor.execute('''
             INSERT INTO orcamentos (cliente_id, veiculo_id, cliente_nome, cliente_telefone, cliente_cpf,
                                     veiculo_placa, veiculo_marca, veiculo_modelo, veiculo_ano, veiculo_cor,
@@ -222,7 +224,7 @@ def atualizar_status(id, novo_status):
     conexao = conectar()
     cursor = conexao.cursor()
     try:
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M")
+        agora = datetime.now(tz=BRT).strftime("%Y-%m-%d %H:%M")
         cursor.execute('UPDATE orcamentos SET status = ?, data_atualizacao = ? WHERE id = ?', (novo_status, agora, id))
         conexao.commit()
         return True, f"Status atualizado para '{novo_status}'."
@@ -237,7 +239,7 @@ def atualizar_observacoes(id, observacoes):
     conexao = conectar()
     cursor = conexao.cursor()
     try:
-        agora = datetime.now().strftime("%Y-%m-%d %H:%M")
+        agora = datetime.now(tz=BRT).strftime("%Y-%m-%d %H:%M")
         cursor.execute('UPDATE orcamentos SET observacoes = ?, data_atualizacao = ? WHERE id = ?', (observacoes, agora, id))
         conexao.commit()
         return True, "Observações atualizadas."
