@@ -47,9 +47,9 @@
                     <div class="col-md-6">
                         <p class="section-divider"><i class="bi bi-person me-1"></i> Cliente</p>
                         <p class="fw-600 mb-1" style="font-size: 1.1rem;">{{ orcamento[3] }}</p>
-                        <p class="text-secondary mb-1"><i class="bi bi-telephone me-1"></i> {{ orcamento[4] or 'Não
+                        <p class="text-secondary mb-1"><i class="bi bi-telephone me-1"></i> {{ orcamento[4]|format_telefone if orcamento[4] else 'Não
                             informado' }}</p>
-                        <p class="text-secondary mb-0"><i class="bi bi-card-text me-1"></i> CPF: {{ orcamento[5] }}</p>
+                        <p class="text-secondary mb-0"><i class="bi bi-card-text me-1"></i> CPF: {{ orcamento[5]|format_cpf }}</p>
                     </div>
                     <div class="col-md-6">
                         <p class="section-divider"><i class="bi bi-truck me-1"></i> Veículo</p>
@@ -122,14 +122,12 @@
                                     <div class="col-md-3">
                                         <label class="form-label" style="font-size: 0.9em;">Serviço (opcional)</label>
                                         <select class="form-select form-select-sm" name="servico_id" id="selectServico"
-                                            onchange="preencherValor()" onfocus="restaurarNomes()" disabled>
+                                            onchange="preencherValor()" disabled>
                                             <option value="">Personalizado</option>
                                             {% for s in servicos %}
                                             <option value="{{ s[0] }}" data-valor="{{ s[3] }}" data-nome="{{ s[1] }}"
                                                 data-tipo="{{ s[4] }}"
-                                                data-completo="{{ s[1] }} — R$ {{ '%.2f'|format(s[3])|replace('.', ',') }}"
-                                                class="servico-option">{{ s[1] }} — R$ {{
-                                                "%.2f"|format(s[3])|replace('.', ',') }}</option>
+                                                class="servico-option">{{ s[1] }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -144,16 +142,11 @@
                                         <input type="number" class="form-control form-control-sm" name="valor_unitario"
                                             id="valorUnitario" step="0.01" min="0" required>
                                     </div>
-                                    <div class="col-md-1">
-                                        <label class="form-label" style="font-size: 0.9em;">Qtd</label>
-                                        <input type="number" class="form-control form-control-sm" name="quantidade"
-                                            value="1" min="1" required>
-                                    </div>
-                                    <div class="col-md-1"
-                                        style="padding-top: 1rem; padding-bottom: 0.5rem; width: 5px;">
-                                        <button type="submit" class="btn btn-success-custom px-4 fw-bold py-0"
-                                            title="Adicionar" style="height: 31px; font-size: 1.25rem; line-height: 1;">
-                                            +
+                                    <div class="col-md-2"
+                                        style="padding-top: 1.6rem;">
+                                        <button type="submit" class="btn btn-success-custom w-100 fw-bold"
+                                            title="Adicionar">
+                                            + Adicionar
                                         </button>
                                     </div>
                                 </div>
@@ -171,8 +164,6 @@
                                 <th>Descrição</th>
                                 <th>Tipo</th>
                                 <th class="text-end">Valor Unit.</th>
-                                <th class="text-center">Qtd</th>
-                                <th class="text-end">Subtotal</th>
                                 <th class="text-end no-print">Ação</th>
                             </tr>
                         </thead>
@@ -188,11 +179,7 @@
                                     <span class="badge-pendente"><i class="bi bi-person me-1"></i>Particular</span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end">R$ {{ "%.2f"|format(item[4])|replace('.', ',') }}</td>
-                                <td class="text-center">{{ item[5] }}</td>
-                                <td class="text-end fw-600" style="color: var(--accent-success);">
-                                    R$ {{ "%.2f"|format(item[6])|replace('.', ',') }}
-                                </td>
+                                <td class="text-end fw-600" style="color: var(--accent-success);">R$ {{ "%.2f"|format(item[4])|replace('.', ',') }}</td>
                                 <td class="text-end no-print">
                                     <form action="/orcamentos/{{ orcamento[0] }}/remover_item/{{ item[0] }}"
                                         method="POST" class="d-inline">
@@ -208,7 +195,7 @@
                             <tr style="border-top: 2px solid var(--accent-primary);">
                                 <td colspan="3" class="text-end fw-700" style="font-size: 1.1rem; white-space: nowrap;">
                                     TOTAL:</td>
-                                <td colspan="3" class="text-end fw-700"
+                                <td colspan="1" class="text-end fw-700"
                                     style="font-size: 1.3rem; color: var(--accent-success); white-space: nowrap;">
                                     R$ {{ "%.2f"|format(orcamento[12])|replace('.', ',') }}
                                 </td>
@@ -397,21 +384,9 @@ Studio Alex Dantas Martelinho de Ouro`;
         }
     }
 
-    function restaurarNomes() {
-        const select = document.getElementById('selectServico');
-        Array.from(select.options).forEach(opt => {
-            if (opt.value && opt.dataset.completo) {
-                opt.textContent = opt.dataset.completo;
-            }
-        });
-    }
-
     function preencherValor() {
         const select = document.getElementById('selectServico');
         const selectedOption = select.options[select.selectedIndex];
-
-        // Sempre restaura os nomes originais primeiro
-        restaurarNomes();
 
         const valor = selectedOption.getAttribute('data-valor');
         const valorInput = document.getElementById('valorUnitario');
@@ -420,9 +395,6 @@ Studio Alex Dantas Martelinho de Ouro`;
         if (valor) {
             valorInput.value = parseFloat(valor).toFixed(2);
             descInput.placeholder = selectedOption.getAttribute('data-nome');
-
-            // Altera apenas o texto da opção selecionada para mostrar só o nome
-            selectedOption.textContent = selectedOption.getAttribute('data-nome');
         } else {
             valorInput.value = '';
             descInput.placeholder = 'Descrição do item';

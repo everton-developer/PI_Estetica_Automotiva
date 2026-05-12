@@ -128,7 +128,7 @@ def criar_tabelas():
             nome TEXT NOT NULL,
             telefone TEXT,
             email TEXT,
-            cpf TEXT UNIQUE NOT NULL,
+            cpf TEXT UNIQUE,
             cep TEXT,
             rua TEXT,
             numero TEXT,
@@ -192,7 +192,6 @@ def criar_tabelas():
             servico_tipo TEXT,
             descricao_personalizada TEXT,
             valor_unitario REAL NOT NULL,
-            quantidade INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id) ON DELETE CASCADE
         )
     ''')

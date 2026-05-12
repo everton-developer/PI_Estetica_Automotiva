@@ -2,6 +2,8 @@ from db import conectar, DatabaseError, IntegrityError
 import re
 
 def validar_cpf(cpf: str) -> bool:
+    if not cpf:
+        return True
     cpf = re.sub(r'\D', '', str(cpf))
     if len(cpf) != 11 or cpf == cpf[0] * 11:
         return False
@@ -19,19 +21,23 @@ def validar_cpf(cpf: str) -> bool:
 
 def cadastrar_cliente(nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado):
     """Cadastra um novo cliente no banco de dados."""
-    if not validar_cpf(cpf):
+    cpf = re.sub(r'\D', '', str(cpf)) if cpf else None
+    telefone = re.sub(r'\D', '', str(telefone)) if telefone else ""
+    cep = re.sub(r'\D', '', str(cep)) if cep else ""
+    
+    if cpf and not validar_cpf(cpf):
         return False, "Erro: CPF inválido."
 
     conexao = conectar()
     cursor = conexao.cursor()
     try:
 
-        cursor.execute('SELECT nome, cpf FROM clientes WHERE LOWER(nome) = LOWER(?) OR cpf = ?', (nome, cpf))
+        cursor.execute('SELECT nome, cpf FROM clientes WHERE LOWER(nome) = LOWER(?) OR (cpf = ? AND cpf IS NOT NULL)', (nome, cpf))
         existing = cursor.fetchall()
         for ext_nome, ext_cpf in existing:
             if ext_nome.lower() == nome.lower():
                 return False, "Erro: Cliente já cadastrado com este Nome."
-            if ext_cpf == cpf:
+            if cpf and ext_cpf == cpf:
                 return False, "Erro: Cliente já cadastrado com este CPF."
 
         cursor.execute('''
@@ -103,19 +109,23 @@ def buscar_cliente_por_id(id_cliente):
 
 def atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado):
     """Atualiza os dados de um cliente existente."""
-    if not validar_cpf(cpf):
+    cpf = re.sub(r'\D', '', str(cpf)) if cpf else None
+    telefone = re.sub(r'\D', '', str(telefone)) if telefone else ""
+    cep = re.sub(r'\D', '', str(cep)) if cep else ""
+
+    if cpf and not validar_cpf(cpf):
         return False, "Erro: CPF inválido."
 
     conexao = conectar()
     cursor = conexao.cursor()
     try:
 
-        cursor.execute('SELECT nome, cpf FROM clientes WHERE (LOWER(nome) = LOWER(?) OR cpf = ?) AND id != ?', (nome, cpf, id))
+        cursor.execute('SELECT nome, cpf FROM clientes WHERE (LOWER(nome) = LOWER(?) OR (cpf = ? AND cpf IS NOT NULL)) AND id != ?', (nome, cpf, id))
         existing = cursor.fetchall()
         for ext_nome, ext_cpf in existing:
             if ext_nome.lower() == nome.lower():
                 return False, "Erro: Cliente já cadastrado com este Nome."
-            if ext_cpf == cpf:
+            if cpf and ext_cpf == cpf:
                 return False, "Erro: Cliente já cadastrado com este CPF."
 
         cursor.execute('''

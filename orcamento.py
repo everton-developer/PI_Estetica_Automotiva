@@ -144,8 +144,7 @@ def listar_itens_orcamento(orcamento_id):
             SELECT id, servico_id,
                    COALESCE(servico_nome, 'Personalizado') AS servico_nome,
                    descricao_personalizada,
-                   valor_unitario, quantidade,
-                   (valor_unitario * quantidade) AS subtotal,
+                   valor_unitario,
                    COALESCE(servico_tipo, 'Particular') AS servico_tipo
             FROM orcamento_itens
             WHERE orcamento_id = ?
@@ -159,32 +158,36 @@ def listar_itens_orcamento(orcamento_id):
         conexao.close()
 
 
-def adicionar_item(orcamento_id, servico_id, descricao_personalizada, valor_unitario, quantidade, tipo_personalizado='Particular'):
-    """Adiciona um item ao orçamento e recalcula o valor total."""
+def adicionar_item(orcamento_id, servico_id, descricao_personalizada, valor_unitario, tipo='Particular'):
     conexao = conectar()
+    if conexao is None: return False, "Erro de conexão."
     cursor = conexao.cursor()
+
     try:
         servico_nome = None
-        servico_tipo = tipo_personalizado
         if servico_id:
-            cursor.execute("SELECT nome, tipo FROM servicos WHERE id = ?", (servico_id,))
-            srv_ref = cursor.fetchone()
-            if srv_ref:
-                servico_nome, servico_tipo = srv_ref
+            cursor.execute('SELECT nome FROM servicos WHERE id = ?', (servico_id,))
+            srv = cursor.fetchone()
+            if srv: servico_nome = srv[0]
 
         cursor.execute('''
-            INSERT INTO orcamento_itens (orcamento_id, servico_id, servico_nome, servico_tipo,
-                                         descricao_personalizada, valor_unitario, quantidade)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (orcamento_id, servico_id if servico_id else None, servico_nome, servico_tipo,
-              descricao_personalizada, valor_unitario, quantidade))
-
-        # Recalcula o valor total do orçamento
-        _recalcular_total(cursor, orcamento_id)
-
+            INSERT INTO orcamento_itens 
+            (orcamento_id, servico_id, servico_nome, servico_tipo, descricao_personalizada, valor_unitario)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (orcamento_id, servico_id, servico_nome, tipo, descricao_personalizada, valor_unitario))
+        
+        # Atualiza valor total do orçamento (sem multiplicar por quantidade)
+        cursor.execute('''
+            UPDATE orcamentos 
+            SET valor_total = (SELECT COALESCE(SUM(valor_unitario), 0) FROM orcamento_itens WHERE orcamento_id = ?),
+                data_atualizacao = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ''', (orcamento_id, orcamento_id))
+        
         conexao.commit()
-        return True, "Item adicionado ao orçamento."
+        return True, "Item adicionado com sucesso."
     except DatabaseError as e:
+        conexao.rollback()
         return False, f"Erro ao adicionar item: {e}"
     finally:
         conexao.close()
@@ -287,7 +290,7 @@ def _recalcular_total(cursor, orcamento_id):
     agora = datetime.now().strftime("%Y-%m-%d %H:%M")
     cursor.execute('''
         UPDATE orcamentos SET valor_total = (
-            SELECT COALESCE(SUM(valor_unitario * quantidade), 0.0)
+            SELECT COALESCE(SUM(valor_unitario), 0.0)
             FROM orcamento_itens WHERE orcamento_id = ?
         ), data_atualizacao = ? WHERE id = ?
     ''', (orcamento_id, agora, orcamento_id))

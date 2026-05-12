@@ -23,15 +23,15 @@
                             value="{{ cliente_editar[1] if cliente_editar else '' }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="cpf" class="form-label">CPF *</label>
+                        <label for="cpf" class="form-label">CPF</label>
                         <input type="text" class="form-control" id="cpf" name="cpf"
-                            value="{{ cliente_editar[4] if cliente_editar else '' }}" required
+                            value="{{ cliente_editar[4]|format_cpf if cliente_editar else '' }}"
                             placeholder="000.000.000-00">
                     </div>
                     <div class="mb-3">
                         <label for="telefone" class="form-label">Telefone</label>
                         <input type="text" class="form-control" id="telefone" name="telefone"
-                            value="{{ cliente_editar[2] if cliente_editar else '' }}" placeholder="(11) 99999-9999">
+                            value="{{ cliente_editar[2]|format_telefone if cliente_editar else '' }}" placeholder="(11) 99999-9999">
                     </div>
                     <div class="mb-3">
                         <label for="email" class="form-label">Email</label>
@@ -44,7 +44,7 @@
                     <div class="mb-3">
                         <label for="cep" class="form-label">CEP</label>
                         <input type="text" class="form-control" id="cep" name="cep"
-                            value="{{ cliente_editar[5] if cliente_editar else '' }}" onblur="buscaCep()"
+                            value="{{ cliente_editar[5]|format_cep if cliente_editar else '' }}" onblur="buscaCep()"
                             placeholder="00000-000">
                     </div>
                     <div class="mb-3">
@@ -137,8 +137,8 @@
                             {% for c in clientes %}
                             <tr>
                                 <td class="fw-500">{{ c[1] }}</td>
-                                <td>{{ c[4] }}</td>
-                                <td>{{ c[2] or '—' }}</td>
+                                <td>{{ c[4]|format_cpf if c[4] else '—' }}</td>
+                                <td>{{ c[2]|format_telefone if c[2] else '—' }}</td>
                                 <td>{{ c[8] or '—' }}</td>
                                 <td class="text-end text-nowrap" class="d-flex">
                                     <a href="/clientes/editar/{{ c[0] }}" class="btn btn-sm btn-outline-custom me-1"

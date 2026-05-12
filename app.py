@@ -12,6 +12,27 @@ app.secret_key = 'l_brothers_sistema_2025'
 # Cria as tabelas no início
 criar_tabelas()
 
+# ==================== FILTROS JINJA ====================
+def format_cpf(cpf):
+    if not cpf or len(cpf) != 11: return cpf
+    return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+
+def format_telefone(telefone):
+    if not telefone: return telefone
+    if len(telefone) == 11:
+        return f"({telefone[:2]}) {telefone[2:7]}-{telefone[7:]}"
+    elif len(telefone) == 10:
+        return f"({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}"
+    return telefone
+
+def format_cep(cep):
+    if not cep or len(cep) != 8: return cep
+    return f"{cep[:5]}-{cep[5:]}"
+
+app.jinja_env.filters['format_cpf'] = format_cpf
+app.jinja_env.filters['format_telefone'] = format_telefone
+app.jinja_env.filters['format_cep'] = format_cep
+
 
 # ==================== PÁGINA INICIAL ====================
 index_bp = Blueprint('index', __name__)
@@ -262,21 +283,17 @@ def orcamentos_page():
     limpar = request.args.get('limpar')
     if limpar == '1':
         session.pop('filtro_busca', None)
-        session.pop('filtro_status', None)
         return redirect('/orcamentos')
 
-    # Pega dos args se foi submetido no form, se não tenta a sessão, se não usa default
     if 'busca' in request.args:
         termo_busca = request.args.get('busca', '').strip()
         session['filtro_busca'] = termo_busca
     else:
         termo_busca = session.get('filtro_busca', '')
 
-    if 'status' in request.args:
-        status_filtro = request.args.get('status', 'Todos')
-        session['filtro_status'] = status_filtro
-    else:
-        status_filtro = session.get('filtro_status', 'Todos')
+    # Não lembra o status, usa o dos parâmetros ou o padrão "Todos"
+    status_filtro = request.args.get('status', 'Todos')
+
     orcamentos_list = orcamento.listar_orcamentos(filtro=termo_busca, status_filtro=status_filtro)
     clientes_list = cliente.listar_clientes()
     veiculos_list = veiculo.listar_veiculos()
@@ -331,7 +348,6 @@ def adicionar_item_route(id):
     servico_id = request.form.get('servico_id')
     descricao_personalizada = request.form.get('descricao_personalizada', '')
     valor_unitario = request.form.get('valor_unitario')
-    quantidade = request.form.get('quantidade', 1)
 
     if not valor_unitario:
         flash("O valor unitário é obrigatório.", "error")
@@ -339,10 +355,9 @@ def adicionar_item_route(id):
 
     try:
         valor_unitario = float(valor_unitario)
-        quantidade = int(quantidade)
         servico_id_int = int(servico_id) if servico_id else None
         sucesso, mensagem = orcamento.adicionar_item(id, servico_id_int, descricao_personalizada,
-                                                     valor_unitario, quantidade, tipo)
+                                                     valor_unitario, tipo)
         flash(mensagem, "success" if sucesso else "error")
     except ValueError:
         flash("Valores inválidos.", "error")
