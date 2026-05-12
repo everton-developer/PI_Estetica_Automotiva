@@ -60,7 +60,7 @@
                 <td class="fw-600" style="color: var(--accent-primary);">#{{ o[0] }}</td>
                 <td class="fw-500">{{ o[1] }}</td>
                 <td>
-                    <code style="color: var(--accent-info);">{{ o[2] }}</code>
+                    <code style="color: var(--accent-info);">{{ o[2]|format_placa }}</code>
                     <small class="text-secondary d-block">{{ o[3] }}</small>
                 </td>
                 <td>{{ o[4] }}</td>
@@ -178,7 +178,11 @@
                 veiculos.forEach(v => {
                     const option = document.createElement('option');
                     option.value = v.id;
-                    option.textContent = `${v.marca} ${v.modelo} — ${v.placa}`;
+                    let placaFormatada = v.placa;
+                    if (v.placa && v.placa.length >= 4) {
+                        placaFormatada = v.placa.substring(0, 3) + '-' + v.placa.substring(3);
+                    }
+                    option.textContent = `${v.marca} ${v.modelo} — ${placaFormatada}`;
                     selectVeiculo.appendChild(option);
                 });
             })

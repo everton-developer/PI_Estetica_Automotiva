@@ -29,9 +29,14 @@ def format_cep(cep):
     if not cep or len(cep) != 8: return cep
     return f"{cep[:5]}-{cep[5:]}"
 
+def format_placa(placa):
+    if not placa or len(placa) < 4: return placa
+    return f"{placa[:3]}-{placa[3:]}"
+
 app.jinja_env.filters['format_cpf'] = format_cpf
 app.jinja_env.filters['format_telefone'] = format_telefone
 app.jinja_env.filters['format_cep'] = format_cep
+app.jinja_env.filters['format_placa'] = format_placa
 
 
 # ==================== PÁGINA INICIAL ====================

@@ -1,8 +1,10 @@
 from db import conectar, DatabaseError, IntegrityError
+import re
 
 
 def cadastrar_veiculo(marca, modelo, ano, cor, placa, cliente_id):
     """Cadastra um novo veículo vinculado a um cliente."""
+    placa = re.sub(r'[^a-zA-Z0-9]', '', str(placa)).upper() if placa else ""
     conexao = conectar()
     cursor = conexao.cursor()
     try:
@@ -107,6 +109,7 @@ def listar_veiculos_por_cliente(cliente_id):
 
 def editar_veiculo(id, marca, modelo, ano, cor, placa, cliente_id):
     """Atualiza os dados de um veículo existente."""
+    placa = re.sub(r'[^a-zA-Z0-9]', '', str(placa)).upper() if placa else ""
     conexao = conectar()
     cursor = conexao.cursor()
     try:

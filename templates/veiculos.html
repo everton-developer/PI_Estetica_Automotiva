@@ -44,7 +44,7 @@
                     <div class="mb-3">
                         <label for="placa" class="form-label">Placa *</label>
                         <input type="text" class="form-control" id="placa" name="placa" 
-                               value="{{ veiculo_editar[5] if veiculo_editar else '' }}" required
+                               value="{{ veiculo_editar[5]|format_placa if veiculo_editar else '' }}" required
                                placeholder="ABC-1D23" style="text-transform: uppercase;">
                     </div>
                     <div class="mb-3">
@@ -118,7 +118,7 @@
                                 <td class="fw-500">{{ v[1] }} {{ v[2] }}</td>
                                 <td>{{ v[3] or '—' }}</td>
                                 <td>{{ v[4] or '—' }}</td>
-                                <td><code style="color: var(--accent-info);">{{ v[5] }}</code></td>
+                                <td><code style="color: var(--accent-info);">{{ v[5]|format_placa }}</code></td>
                                 <td>{{ v[6] }}</td>
                                 <td class="text-end text-nowrap">
                                     <a href="/veiculos/editar/{{ v[0] }}" class="btn btn-sm btn-outline-custom me-1" title="Editar">
