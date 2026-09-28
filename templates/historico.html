@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico de Ações - STUDIO ALEX DANTAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0"><i class="bi bi-clock-history me-2" style="color: var(--accent-info);"></i>Histórico de
+        Ações</h2>
+</div>
+
+<!-- Filtro de busca -->
+<div class="card mb-4">
+    <div class="card-body p-3">
+        <form method="GET" action="/historico" class="row g-2 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">Buscar</label>
+                <input type="text" name="busca" class="form-control"
+                    placeholder="Buscar por usuário, ação ou detalhes..." value="{{ busca if busca else '' }}">
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-primary-custom flex-grow-1" type="submit">
+                    <i class="bi bi-search me-1"></i> Buscar
+                </button>
+                <a href="/historico" class="btn btn-outline-custom">Limpar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Registros -->
+{% if registros %}
+<div class="card">
+    <div class="card-header accent-blue">
+        <i class="bi bi-journal-text me-2"></i> Registros ({{ registros|length }})
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;">Data/Hora</th>
+                        <th style="width: 150px;">Usuário</th>
+                        <th style="width: 100px;">Login</th>
+                        <th style="width: 180px;">Ação</th>
+                        <th>Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in registros %}
+                    <tr>
+                        <td style="white-space: nowrap;">
+                            <i class="bi bi-calendar-event me-1" style="color: var(--accent-info);"></i>
+                            {{ r[1] }}
+                        </td>
+                        <td class="fw-500">{{ r[2] }}</td>
+                        <td><code style="color: var(--accent-primary);">{{ r[3] }}</code></td>
+                        <td>
+                            {% if 'Login' in r[4] or 'Logout' in r[4] %}
+                            <span class="badge-concluido"><i class="bi bi-box-arrow-in-right me-1"></i>{{ r[4] }}</span>
+                            {% elif 'Cadastro' in r[4] or 'Criação' in r[4] or 'Adição' in r[4] %}
+                            <span class="badge-aprovado"><i class="bi bi-plus-circle me-1"></i>{{ r[4] }}</span>
+                            {% elif 'Edição' in r[4] or 'Atualização' in r[4] or 'Alteração' in r[4] %}
+                            <span class="badge-pendente"><i class="bi bi-pencil me-1"></i>{{ r[4] }}</span>
+                            {% elif 'Exclusão' in r[4] or 'Remoção' in r[4] %}
+                            <span class="badge-recusado"><i class="bi bi-trash me-1"></i>{{ r[4] }}</span>
+                            {% else %}
+                            <span class="badge-concluido"><i class="bi bi-info-circle me-1"></i>{{ r[4] }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-secondary" style="font-size: 0.88rem;">{{ r[5] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-clock-history fs-1" style="color: var(--text-secondary); opacity: 0.3;"></i>
+        <p class="text-secondary mt-2">Nenhum registro encontrado no histórico.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

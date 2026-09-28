@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciar Usuários - STUDIO ALEX DANTAS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0"><i class="bi bi-people-fill me-2" style="color: var(--accent-primary);"></i>Gerenciamento
+        de Usuários</h2>
+    <button class="btn btn-success-custom" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+        <i class="bi bi-person-plus me-1"></i> Novo Usuário
+    </button>
+</div>
+
+<!-- Lista de Usuários -->
+{% if usuarios %}
+<div class="card">
+    <div class="card-header accent-purple">
+        <i class="bi bi-list me-2"></i> Usuários Cadastrados
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Login</th>
+                        <th>E-mail</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in usuarios %}
+                    <tr>
+                        <td class="fw-600" style="color: var(--accent-primary);">#{{ u[0] }}</td>
+                        <td class="fw-500">{{ u[1] }}</td>
+                        <td><code style="color: var(--accent-info);">{{ u[2] }}</code></td>
+                        <td class="text-secondary">{{ u[3] }}</td>
+                        <td>
+                            {% if u[4] == 'adm' %}
+                            <span class="badge-aprovado"><i class="bi bi-shield-check me-1"></i>Administrador</span>
+                            {% else %}
+                            <span class="badge-pendente"><i class="bi bi-person me-1"></i>Comum</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end text-nowrap">
+                            {% if u[4] != 'adm' %}
+                            <a href="/usuarios/editar/{{ u[0] }}" class="btn btn-sm btn-primary-custom me-1"
+                                title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="/usuarios/excluir/{{ u[0] }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-danger-custom"
+                                    onclick="return confirm('Excluir este usuário?')" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-secondary" style="font-size: 0.8rem;">
+                                <i class="bi bi-lock me-1"></i>Protegido
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-people fs-1" style="color: var(--text-secondary); opacity: 0.3;"></i>
+        <p class="text-secondary mt-2">Nenhum usuário cadastrado.</p>
+        <button class="btn btn-success-custom mt-2" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+            <i class="bi bi-person-plus me-1"></i> Cadastrar Primeiro Usuário
+        </button>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block modals %}
+<!-- Modal Novo Usuário / Editar Usuário -->
+<div class="modal fade {% if usuario_editar %}show{% endif %}"
+    id="{% if usuario_editar %}modalEditarUsuario{% else %}modalNovoUsuario{% endif %}" tabindex="-1"
+    {% if usuario_editar %}style="display:block;" aria-modal="true" role="dialog" {% endif %}>
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom-color: var(--border-color);">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-person-{% if usuario_editar %}gear{% else %}plus{% endif %} me-2"
+                        style="color: var(--accent-success);"></i>
+                    {% if usuario_editar %}Editar Usuário{% else %}Novo Usuário{% endif %}
+                </h5>
+                {% if usuario_editar %}
+                <a href="/usuarios" class="btn-close"></a>
+                {% else %}
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                {% endif %}
+            </div>
+            <form
+                action="{% if usuario_editar %}/usuarios/editar/{{ usuario_editar[0] }}{% else %}/usuarios/cadastrar{% endif %}"
+                method="POST" id="formUsuario" onsubmit="return validarFormUsuario(event, {{ 'true' if usuario_editar else 'false' }})">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="nome" name="nome"
+                            placeholder="Nome completo do usuário" required
+                            value="{{ usuario_editar[1] if usuario_editar else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="login_input" class="form-label">Login * <small class="text-secondary">(mín. 5
+                                caracteres)</small></label>
+                        <input type="text" class="form-control" id="login_input" name="login"
+                            placeholder="Login de acesso" required minlength="5"
+                            value="{{ usuario_editar[2] if usuario_editar else '' }}">
+                        <div class="invalid-feedback" id="loginFeedback">O login deve ter no mínimo 5 caracteres.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-mail *</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                            placeholder="E-mail do usuário" required
+                            value="{{ usuario_editar[3] if usuario_editar else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="senha_input" class="form-label">
+                            Senha *
+                            {% if usuario_editar %}
+                            <small class="text-secondary">(deixe em branco para manter a atual)</small>
+                            {% endif %}
+                        </label>
+                        <input type="password" class="form-control" id="senha_input" name="senha"
+                            placeholder="Senha alfanumérica (8-12 caracteres)"
+                            {% if not usuario_editar %}required{% endif %}
+                            minlength="8" maxlength="12" autocomplete="new-password">
+                        <div class="form-text" style="color: var(--text-secondary); font-size: 0.75rem;">
+                            8 a 12 caracteres: ao menos 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.
+                        </div>
+                        <div class="invalid-feedback" id="senhaFeedback">A senha não atende aos requisitos.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="senha_confirm" class="form-label">Confirmar Senha *</label>
+                        <input type="password" class="form-control" id="senha_confirm"
+                            placeholder="Confirme a senha"
+                            {% if not usuario_editar %}required{% endif %}
+                            autocomplete="new-password">
+                        <div class="invalid-feedback" id="confirmFeedback">As senhas não coincidem.</div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top-color: var(--border-color);">
+                    {% if usuario_editar %}
+                    <a href="/usuarios" class="btn btn-outline-custom">Cancelar</a>
+                    {% else %}
+                    <button type="button" class="btn btn-outline-custom" data-bs-dismiss="modal">Cancelar</button>
+                    {% endif %}
+                    <button type="submit" class="btn btn-success-custom">
+                        <i class="bi bi-check-lg me-1"></i>
+                        {% if usuario_editar %}Salvar Alterações{% else %}Cadastrar{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% if usuario_editar %}
+<div class="modal-backdrop fade show"></div>
+{% endif %}
+
+<!-- Modal Novo Usuário (quando não está editando) -->
+{% if not usuario_editar %}
+<!-- O modal já está definido acima como modalNovoUsuario -->
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function validarFormUsuario(event, isEditing) {
+        const login = document.getElementById('login_input').value.trim();
+        const senha = document.getElementById('senha_input').value;
+        const confirmar = document.getElementById('senha_confirm').value;
+        let valid = true;
+
+        // Reset
+        document.getElementById('login_input').classList.remove('is-invalid');
+        document.getElementById('senha_input').classList.remove('is-invalid');
+        document.getElementById('senha_confirm').classList.remove('is-invalid');
+
+        // Validar login (mín 5 caracteres)
+        if (login.length < 5) {
+            document.getElementById('login_input').classList.add('is-invalid');
+            document.getElementById('loginFeedback').textContent = 'O login deve ter no mínimo 5 caracteres.';
+            valid = false;
+        }
+
+        // Se é cadastro novo, senha é obrigatória
+        // Se é edição e senha preenchida, valida
+        if (!isEditing || senha.length > 0) {
+            // Validar senha (8-12 chars, 1 maiúscula, 1 minúscula, 1 número, 1 especial)
+            const senhaRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,12}$/;
+            if (!senhaRegex.test(senha)) {
+                document.getElementById('senha_input').classList.add('is-invalid');
+                document.getElementById('senhaFeedback').textContent =
+                    'A senha deve ter 8-12 caracteres com: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.';
+                valid = false;
+            }
+
+            // Confirmar senha
+            if (senha !== confirmar) {
+                document.getElementById('senha_confirm').classList.add('is-invalid');
+                document.getElementById('confirmFeedback').textContent = 'As senhas não coincidem.';
+                valid = false;
+            }
+        }
+
+        if (!valid) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    }
+</script>
+{% endblock %}

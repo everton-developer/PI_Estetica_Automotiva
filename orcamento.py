@@ -1,7 +1,33 @@
 from db import conectar, DatabaseError
 from datetime import datetime, timezone, timedelta
+import string
+import secrets
 
 BRT = timezone(timedelta(hours=-3))
+
+# Caracteres permitidos no código identificador de orçamento
+# Alfanuméricos + caracteres especiais (exceto espaço, ponto, vírgula e similares)
+CODIGO_CHARS = string.ascii_letters + string.digits + '!@#$%&*_-'
+
+
+def gerar_codigo_orcamento():
+    """Gera um código identificador único de 15 caracteres alfanuméricos com caracteres especiais."""
+    while True:
+        codigo = ''.join(secrets.choice(CODIGO_CHARS) for _ in range(15))
+        # Verifica se o código já existe no banco
+        conexao = conectar()
+        if conexao is None:
+            return codigo  # Em caso de erro, retorna sem verificar
+
+        cursor = conexao.cursor()
+        try:
+            cursor.execute('SELECT id FROM orcamentos WHERE codigo_orcamento = ?', (codigo,))
+            if cursor.fetchone() is None:
+                return codigo  # Código único encontrado
+        except DatabaseError:
+            return codigo
+        finally:
+            conexao.close()
 
 
 def criar_orcamento(cliente_id, veiculo_id, observacoes=''):
@@ -23,14 +49,17 @@ def criar_orcamento(cliente_id, veiculo_id, observacoes=''):
             return False, "Veículo não encontrado.", None
         veiculo_placa, veiculo_marca, veiculo_modelo, veiculo_ano, veiculo_cor = veiculo_ref
 
+        # Gera o código identificador único
+        codigo_orcamento = gerar_codigo_orcamento()
+
         agora = datetime.now(tz=BRT).strftime("%Y-%m-%d %H:%M")
         cursor.execute('''
             INSERT INTO orcamentos (cliente_id, veiculo_id, cliente_nome, cliente_telefone, cliente_cpf,
                                     veiculo_placa, veiculo_marca, veiculo_modelo, veiculo_ano, veiculo_cor,
-                                    data_criacao, data_atualizacao, status, observacoes, valor_total)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente', ?, 0.0)
+                                    data_criacao, data_atualizacao, status, observacoes, valor_total, codigo_orcamento)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pendente', ?, 0.0, ?)
         ''', (cliente_id, veiculo_id, cliente_nome, cliente_telefone, cliente_cpf,
-              veiculo_placa, veiculo_marca, veiculo_modelo, veiculo_ano, veiculo_cor, agora, agora, observacoes))
+              veiculo_placa, veiculo_marca, veiculo_modelo, veiculo_ano, veiculo_cor, agora, agora, observacoes, codigo_orcamento))
         conexao.commit()
         orcamento_id = cursor.lastrowid
         return True, "Orçamento criado com sucesso.", orcamento_id
@@ -53,7 +82,7 @@ def listar_orcamentos(filtro=None, status_filtro=None):
                    veiculo_placa,
                    veiculo_marca || ' ' || veiculo_modelo AS veiculo_desc,
                    data_atualizacao AS data_formatada, status, 
-                   valor_total, observacoes
+                   valor_total, observacoes, codigo_orcamento
             FROM orcamentos
         '''
         conditions = []
@@ -110,7 +139,7 @@ def buscar_orcamento_por_id(id):
                    veiculo_marca || ' ' || veiculo_modelo AS veiculo_desc,
                    veiculo_ano, veiculo_cor,
                    data_atualizacao AS data_formatada, status, 
-                   valor_total, observacoes
+                   valor_total, observacoes, codigo_orcamento
             FROM orcamentos
             WHERE id = ?
         ''', (id,))
@@ -127,6 +156,43 @@ def buscar_orcamento_por_id(id):
         return None
     except DatabaseError as e:
         print(f"Erro ao buscar orçamento: {e}")
+        return None
+    finally:
+        conexao.close()
+
+
+def buscar_orcamento_por_codigo(codigo):
+    """Busca um orçamento pelo código identificador."""
+    conexao = conectar()
+    if conexao is None:
+        return None
+
+    cursor = conexao.cursor()
+    try:
+        cursor.execute('''
+            SELECT id, cliente_id, veiculo_id,
+                   cliente_nome, cliente_telefone,
+                   cliente_cpf,
+                   veiculo_placa,
+                   veiculo_marca || ' ' || veiculo_modelo AS veiculo_desc,
+                   veiculo_ano, veiculo_cor,
+                   data_atualizacao AS data_formatada, status, 
+                   valor_total, observacoes, codigo_orcamento
+            FROM orcamentos
+            WHERE codigo_orcamento = ?
+        ''', (codigo,))
+        row = cursor.fetchone()
+        if row:
+            row_list = list(row)
+            try:
+                dt_obj = datetime.strptime(str(row_list[10]), '%Y-%m-%d %H:%M')
+                row_list[10] = dt_obj.strftime('%d/%m/%Y %H:%M')
+            except ValueError:
+                pass
+            return tuple(row_list)
+        return None
+    except DatabaseError as e:
+        print(f"Erro ao buscar orçamento por código: {e}")
         return None
     finally:
         conexao.close()

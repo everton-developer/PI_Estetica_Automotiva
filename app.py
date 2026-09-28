@@ -1,9 +1,12 @@
 from flask import Flask, request, redirect, render_template, Blueprint, flash, jsonify, session
+from functools import wraps
 
 import cliente
 import servico
 import veiculo
 import orcamento
+import usuario
+import historico
 from db import criar_tabelas, conectar, DatabaseError
 
 app = Flask(__name__)
@@ -39,11 +42,128 @@ app.jinja_env.filters['format_cep'] = format_cep
 app.jinja_env.filters['format_placa'] = format_placa
 
 
+# ==================== DECORADORES DE AUTENTICAÇÃO ====================
+def login_obrigatorio(f):
+    """Decorator que exige login de usuário (adm ou comum)."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'usuario' not in session:
+            flash("Faça login para acessar o sistema.", "error")
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def somente_adm(f):
+    """Decorator que exige login de usuário administrador."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'usuario' not in session:
+            flash("Faça login para acessar o sistema.", "error")
+            return redirect('/login')
+        if session['usuario'].get('tipo') != 'adm':
+            flash("Acesso restrito ao administrador.", "error")
+            return redirect('/')
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def registrar_log(acao, detalhes):
+    """Registra uma ação no histórico se houver usuário logado."""
+    if 'usuario' in session:
+        usuario_info = session['usuario']
+        historico.registrar_acao(
+            usuario_info.get('nome', 'Desconhecido'),
+            usuario_info.get('login', 'desconhecido'),
+            acao,
+            detalhes
+        )
+
+
+# ==================== LOGIN/LOGOUT ====================
+auth_bp = Blueprint('auth', __name__)
+
+
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login_page():
+    # Se já está logado, redireciona
+    if 'usuario' in session:
+        return redirect('/')
+
+    if request.method == 'POST':
+        # Verifica se é login com código de orçamento
+        codigo_orcamento = request.form.get('codigo_orcamento', '').strip()
+        if codigo_orcamento:
+            orc = orcamento.buscar_orcamento_por_codigo(codigo_orcamento)
+            if orc:
+                # Salva na sessão como acesso de cliente
+                session['cliente_orcamento'] = {
+                    'codigo': codigo_orcamento,
+                    'orcamento_id': orc[0]
+                }
+                return redirect(f'/orcamento/visualizar/{codigo_orcamento}')
+            else:
+                flash("Código de orçamento inválido ou não encontrado.", "error")
+                return render_template('login.html')
+
+        # Login com usuário e senha
+        login_input = request.form.get('login', '').strip()
+        senha_input = request.form.get('senha', '').strip()
+
+        if not login_input or not senha_input:
+            flash("Preencha o login e a senha.", "error")
+            return render_template('login.html')
+
+        usuario_data = usuario.autenticar_usuario(login_input, senha_input)
+        if usuario_data:
+            session['usuario'] = usuario_data
+            registrar_log('Login', f"Usuário '{usuario_data['login']}' realizou login no sistema.")
+            flash(f"Bem-vindo(a), {usuario_data['nome']}!", "success")
+            return redirect('/')
+        else:
+            flash("Login ou senha incorretos.", "error")
+            return render_template('login.html')
+
+    return render_template('login.html')
+
+
+@auth_bp.route('/logout')
+def logout():
+    if 'usuario' in session:
+        registrar_log('Logout', f"Usuário '{session['usuario']['login']}' saiu do sistema.")
+    session.clear()
+    flash("Você saiu do sistema.", "success")
+    return redirect('/login')
+
+
+# ==================== VISUALIZAÇÃO DE ORÇAMENTO PELO CLIENTE ====================
+@auth_bp.route('/orcamento/visualizar/<codigo>')
+def visualizar_orcamento_cliente(codigo):
+    # Permite acesso se houver sessão de cliente com esse código OU se for usuário logado
+    cliente_orc = session.get('cliente_orcamento')
+    usuario_logado = session.get('usuario')
+
+    if not usuario_logado and (not cliente_orc or cliente_orc.get('codigo') != codigo):
+        flash("Faça login ou informe o código do orçamento para visualizá-lo.", "error")
+        return redirect('/login')
+
+    orc = orcamento.buscar_orcamento_por_codigo(codigo)
+    if orc is None:
+        flash("Orçamento não encontrado ou foi excluído.", "error")
+        if usuario_logado:
+            return redirect('/orcamentos')
+        return redirect('/login')
+
+    itens = orcamento.listar_itens_orcamento(orc[0])
+    return render_template('orcamento_cliente.html', orcamento=orc, itens=itens)
+
+
 # ==================== PÁGINA INICIAL ====================
 index_bp = Blueprint('index', __name__)
 
 
 @index_bp.route('/')
+@login_obrigatorio
 def home():
     # Dados para o dashboard
     conexao = conectar()
@@ -90,6 +210,7 @@ clientes_bp = Blueprint('clientes', __name__)
 
 
 @clientes_bp.route('/clientes', methods=['GET'])
+@login_obrigatorio
 def clientes_page():
     termo_busca = request.args.get('busca', '').strip()
     clientes_list = cliente.listar_clientes(termo_busca)
@@ -97,6 +218,7 @@ def clientes_page():
 
 
 @clientes_bp.route('/clientes/cadastrar', methods=['POST'])
+@login_obrigatorio
 def cadastrar_cliente_route():
     nome = request.form['nome']
     telefone = request.form['telefone']
@@ -112,10 +234,13 @@ def cadastrar_cliente_route():
 
     sucesso, mensagem = cliente.cadastrar_cliente(nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Cadastro de Cliente', f"Cliente '{nome}' cadastrado.")
     return redirect('/clientes')
 
 
 @clientes_bp.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
+@login_obrigatorio
 def editar_cliente_route(id):
     if request.method == 'POST':
         nome = request.form['nome']
@@ -132,6 +257,8 @@ def editar_cliente_route(id):
 
         sucesso, mensagem = cliente.atualizar_cliente(id, nome, telefone, email, cpf, cep, rua, numero, complemento, bairro, cidade, estado)
         flash(mensagem, "success" if sucesso else "error")
+        if sucesso:
+            registrar_log('Edição de Cliente', f"Cliente '{nome}' (ID: {id}) atualizado.")
         return redirect('/clientes')
     else:
         cliente_editar = cliente.buscar_cliente_por_id(id)
@@ -143,9 +270,15 @@ def editar_cliente_route(id):
 
 
 @clientes_bp.route('/clientes/excluir/<int:id>', methods=['POST'])
+@login_obrigatorio
 def excluir_cliente_route(id):
+    # Buscar nome do cliente antes de excluir para o log
+    cl = cliente.buscar_cliente_por_id(id)
+    nome_cliente = cl[1] if cl else f"ID {id}"
     sucesso, mensagem = cliente.excluir_cliente(id)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Exclusão de Cliente', f"Cliente '{nome_cliente}' (ID: {id}) excluído.")
     return redirect('/clientes')
 
 
@@ -154,6 +287,7 @@ veiculos_bp = Blueprint('veiculos', __name__)
 
 
 @veiculos_bp.route('/veiculos', methods=['GET'])
+@login_obrigatorio
 def veiculos_page():
     termo_busca = request.args.get('busca', '').strip()
     veiculos_list = veiculo.listar_veiculos(termo_busca)
@@ -162,6 +296,7 @@ def veiculos_page():
 
 
 @veiculos_bp.route('/veiculos/cadastrar', methods=['POST'])
+@login_obrigatorio
 def cadastrar_veiculo_route():
     marca = request.form.get('marca')
     modelo = request.form.get('modelo')
@@ -178,6 +313,8 @@ def cadastrar_veiculo_route():
         cliente_id = int(cliente_id)
         sucesso, mensagem = veiculo.cadastrar_veiculo(marca, modelo, ano, cor, placa, cliente_id)
         flash(mensagem, "success" if sucesso else "error")
+        if sucesso:
+            registrar_log('Cadastro de Veículo', f"Veículo '{marca} {modelo}' (Placa: {placa}) cadastrado.")
     except ValueError:
         flash("ID do cliente inválido.", "error")
 
@@ -185,6 +322,7 @@ def cadastrar_veiculo_route():
 
 
 @veiculos_bp.route('/veiculos/editar/<int:id>', methods=['GET', 'POST'])
+@login_obrigatorio
 def editar_veiculo_route(id):
     if request.method == 'POST':
         marca = request.form['marca']
@@ -196,6 +334,8 @@ def editar_veiculo_route(id):
 
         sucesso, mensagem = veiculo.editar_veiculo(id, marca, modelo, ano, cor, placa, cliente_id)
         flash(mensagem, "success" if sucesso else "error")
+        if sucesso:
+            registrar_log('Edição de Veículo', f"Veículo '{marca} {modelo}' (ID: {id}) atualizado.")
         return redirect('/veiculos')
     else:
         veiculo_editar = veiculo.buscar_veiculo_por_id(id)
@@ -209,9 +349,14 @@ def editar_veiculo_route(id):
 
 
 @veiculos_bp.route('/veiculos/excluir/<int:id>', methods=['POST'])
+@login_obrigatorio
 def excluir_veiculo_route(id):
+    v = veiculo.buscar_veiculo_por_id(id)
+    desc = f"{v[1]} {v[2]} (Placa: {v[5]})" if v else f"ID {id}"
     sucesso, mensagem = veiculo.excluir_veiculo(id)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Exclusão de Veículo', f"Veículo '{desc}' (ID: {id}) excluído.")
     return redirect('/veiculos')
 
 
@@ -220,6 +365,7 @@ servicos_bp = Blueprint('servicos', __name__)
 
 
 @servicos_bp.route('/servicos', methods=['GET'])
+@login_obrigatorio
 def servicos_page():
     termo_busca = request.args.get('busca', '').strip()
     servicos_list = servico.listar_servicos(termo_busca)
@@ -227,6 +373,7 @@ def servicos_page():
 
 
 @servicos_bp.route('/servicos/cadastrar', methods=['POST'])
+@login_obrigatorio
 def cadastrar_servico_route():
     nome = request.form['nome']
     descricao = request.form['descricao']
@@ -241,6 +388,8 @@ def cadastrar_servico_route():
         valor = float(valor)
         sucesso, mensagem = servico.cadastrar_servico(nome, descricao, valor, tipo)
         flash(mensagem, "success" if sucesso else "error")
+        if sucesso:
+            registrar_log('Cadastro de Serviço', f"Serviço '{nome}' ({tipo}) - R$ {valor:.2f} cadastrado.")
     except ValueError:
         flash("Valor inválido. Use um número.", "error")
 
@@ -248,6 +397,7 @@ def cadastrar_servico_route():
 
 
 @servicos_bp.route('/servicos/editar/<int:id>', methods=['GET', 'POST'])
+@login_obrigatorio
 def editar_servico_route(id):
     if request.method == 'POST':
         nome = request.form['nome']
@@ -259,6 +409,8 @@ def editar_servico_route(id):
             valor = float(valor)
             sucesso, mensagem = servico.editar_servico(id, nome, descricao, valor, tipo)
             flash(mensagem, "success" if sucesso else "error")
+            if sucesso:
+                registrar_log('Edição de Serviço', f"Serviço '{nome}' (ID: {id}) atualizado.")
         except ValueError:
             flash("Valor inválido.", "error")
 
@@ -273,9 +425,14 @@ def editar_servico_route(id):
 
 
 @servicos_bp.route('/servicos/excluir/<int:id>', methods=['POST'])
+@login_obrigatorio
 def excluir_servico_route(id):
+    sv = servico.buscar_servico_por_id(id)
+    nome_servico = sv[1] if sv else f"ID {id}"
     sucesso, mensagem = servico.excluir_servico(id)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Exclusão de Serviço', f"Serviço '{nome_servico}' (ID: {id}) excluído.")
     return redirect('/servicos')
 
 
@@ -284,6 +441,7 @@ orcamentos_bp = Blueprint('orcamentos', __name__)
 
 
 @orcamentos_bp.route('/orcamentos', methods=['GET'])
+@login_obrigatorio
 def orcamentos_page():
     limpar = request.args.get('limpar')
     if limpar == '1':
@@ -311,6 +469,7 @@ def orcamentos_page():
 
 
 @orcamentos_bp.route('/orcamentos/criar', methods=['POST'])
+@login_obrigatorio
 def criar_orcamento_route():
     cliente_id = request.form.get('cliente_id')
     veiculo_id = request.form.get('veiculo_id')
@@ -326,6 +485,10 @@ def criar_orcamento_route():
         sucesso, mensagem, orcamento_id = orcamento.criar_orcamento(cliente_id, veiculo_id, observacoes)
         if sucesso:
             flash(mensagem, "success")
+            # Buscar orçamento para pegar o código gerado
+            orc = orcamento.buscar_orcamento_por_id(orcamento_id)
+            codigo = orc[14] if orc else 'N/A'
+            registrar_log('Criação de Orçamento', f"Orçamento #{orcamento_id} (Código: {codigo}) criado.")
             return redirect(f'/orcamentos/{orcamento_id}')
         else:
             flash(mensagem, "error")
@@ -336,6 +499,7 @@ def criar_orcamento_route():
 
 
 @orcamentos_bp.route('/orcamentos/<int:id>', methods=['GET'])
+@login_obrigatorio
 def detalhe_orcamento_route(id):
     orc = orcamento.buscar_orcamento_por_id(id)
     if orc is None:
@@ -348,6 +512,7 @@ def detalhe_orcamento_route(id):
 
 
 @orcamentos_bp.route('/orcamentos/<int:id>/adicionar_item', methods=['POST'])
+@login_obrigatorio
 def adicionar_item_route(id):
     tipo = request.form.get('tipo', 'Particular')
     servico_id = request.form.get('servico_id')
@@ -364,6 +529,9 @@ def adicionar_item_route(id):
         sucesso, mensagem = orcamento.adicionar_item(id, servico_id_int, descricao_personalizada,
                                                      valor_unitario, tipo)
         flash(mensagem, "success" if sucesso else "error")
+        if sucesso:
+            desc = descricao_personalizada or f"Serviço ID {servico_id}"
+            registrar_log('Adição de Item', f"Item '{desc}' (R$ {valor_unitario:.2f}) adicionado ao orçamento #{id}.")
     except ValueError:
         flash("Valores inválidos.", "error")
 
@@ -371,37 +539,52 @@ def adicionar_item_route(id):
 
 
 @orcamentos_bp.route('/orcamentos/<int:id>/remover_item/<int:item_id>', methods=['POST'])
+@login_obrigatorio
 def remover_item_route(id, item_id):
     sucesso, mensagem = orcamento.remover_item(item_id)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Remoção de Item', f"Item #{item_id} removido do orçamento #{id}.")
     return redirect(f'/orcamentos/{id}')
 
 
 @orcamentos_bp.route('/orcamentos/<int:id>/status', methods=['POST'])
+@login_obrigatorio
 def alterar_status_route(id):
     novo_status = request.form.get('status')
     sucesso, mensagem = orcamento.atualizar_status(id, novo_status)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Alteração de Status', f"Status do orçamento #{id} alterado para '{novo_status}'.")
     return redirect(f'/orcamentos/{id}')
 
 
 @orcamentos_bp.route('/orcamentos/<int:id>/observacoes', methods=['POST'])
+@login_obrigatorio
 def atualizar_observacoes_route(id):
     observacoes = request.form.get('observacoes', '')
     sucesso, mensagem = orcamento.atualizar_observacoes(id, observacoes)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Atualização de Observações', f"Observações do orçamento #{id} atualizadas.")
     return redirect(f'/orcamentos/{id}')
 
 
 @orcamentos_bp.route('/orcamentos/excluir/<int:id>', methods=['POST'])
+@login_obrigatorio
 def excluir_orcamento_route(id):
+    orc = orcamento.buscar_orcamento_por_id(id)
+    codigo = orc[14] if orc else 'N/A'
     sucesso, mensagem = orcamento.excluir_orcamento(id)
     flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Exclusão de Orçamento', f"Orçamento #{id} (Código: {codigo}) excluído.")
     return redirect('/orcamentos')
 
 
 # API para buscar veículos de um cliente (usada dinamicamente nos formulários)
 @orcamentos_bp.route('/api/veiculos_cliente/<int:cliente_id>')
+@login_obrigatorio
 def api_veiculos_cliente(cliente_id):
     veiculos_list = veiculo.listar_veiculos_por_cliente(cliente_id)
     return jsonify([{
@@ -414,12 +597,101 @@ def api_veiculos_cliente(cliente_id):
     } for v in veiculos_list])
 
 
+# ==================== GERENCIAMENTO DE USUÁRIOS (SOMENTE ADM) ====================
+usuarios_bp = Blueprint('usuarios', __name__)
+
+
+@usuarios_bp.route('/usuarios', methods=['GET'])
+@somente_adm
+def usuarios_page():
+    usuarios_list = usuario.listar_usuarios()
+    return render_template('usuarios.html', usuarios=usuarios_list)
+
+
+@usuarios_bp.route('/usuarios/cadastrar', methods=['POST'])
+@somente_adm
+def cadastrar_usuario_route():
+    nome = request.form.get('nome', '').strip()
+    login_input = request.form.get('login', '').strip()
+    senha = request.form.get('senha', '').strip()
+    email = request.form.get('email', '').strip()
+
+    if not all([nome, login_input, senha, email]):
+        flash("Todos os campos são obrigatórios.", "error")
+        return redirect('/usuarios')
+
+    sucesso, mensagem = usuario.cadastrar_usuario(nome, login_input, senha, email)
+    flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Cadastro de Usuário', f"Usuário '{login_input}' ({nome}) cadastrado pelo administrador.")
+    return redirect('/usuarios')
+
+
+@usuarios_bp.route('/usuarios/editar/<int:id>', methods=['GET', 'POST'])
+@somente_adm
+def editar_usuario_route(id):
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        login_input = request.form.get('login', '').strip()
+        email = request.form.get('email', '').strip()
+        senha = request.form.get('senha', '').strip()
+
+        if not all([nome, login_input, email]):
+            flash("Nome, login e e-mail são obrigatórios.", "error")
+            return redirect('/usuarios')
+
+        # Se senha vazia, não atualiza a senha
+        senha_param = senha if senha else None
+        sucesso, mensagem = usuario.atualizar_usuario(id, nome, login_input, email, senha_param)
+        flash(mensagem, "success" if sucesso else "error")
+        if sucesso:
+            registrar_log('Edição de Usuário', f"Usuário '{login_input}' (ID: {id}) atualizado pelo administrador.")
+        return redirect('/usuarios')
+    else:
+        usuario_editar = usuario.buscar_usuario_por_id(id)
+        if usuario_editar is None:
+            flash("Usuário não encontrado.", "error")
+            return redirect('/usuarios')
+        if usuario_editar[4] == 'adm':
+            flash("O usuário administrador não pode ser editado pela interface.", "error")
+            return redirect('/usuarios')
+        usuarios_list = usuario.listar_usuarios()
+        return render_template('usuarios.html', usuarios=usuarios_list, usuario_editar=usuario_editar)
+
+
+@usuarios_bp.route('/usuarios/excluir/<int:id>', methods=['POST'])
+@somente_adm
+def excluir_usuario_route(id):
+    usr = usuario.buscar_usuario_por_id(id)
+    nome_usuario = f"{usr[1]} ({usr[2]})" if usr else f"ID {id}"
+    sucesso, mensagem = usuario.excluir_usuario(id)
+    flash(mensagem, "success" if sucesso else "error")
+    if sucesso:
+        registrar_log('Exclusão de Usuário', f"Usuário '{nome_usuario}' (ID: {id}) excluído pelo administrador.")
+    return redirect('/usuarios')
+
+
+# ==================== HISTÓRICO (SOMENTE ADM) ====================
+historico_bp = Blueprint('historico', __name__)
+
+
+@historico_bp.route('/historico', methods=['GET'])
+@somente_adm
+def historico_page():
+    termo_busca = request.args.get('busca', '').strip()
+    registros = historico.listar_historico(filtro=termo_busca if termo_busca else None, limite=200)
+    return render_template('historico.html', registros=registros, busca=termo_busca)
+
+
 # ==================== REGISTRO DOS BLUEPRINTS ====================
+app.register_blueprint(auth_bp)
 app.register_blueprint(index_bp)
 app.register_blueprint(clientes_bp)
 app.register_blueprint(veiculos_bp)
 app.register_blueprint(servicos_bp)
 app.register_blueprint(orcamentos_bp)
+app.register_blueprint(usuarios_bp)
+app.register_blueprint(historico_bp)
 
 
 # ==================== EXECUÇÃO ====================

@@ -61,6 +61,7 @@ class ConnectionWrapper:
 
     def commit(self): return self._conexao.commit()
     def close(self): return self._conexao.close()
+    def rollback(self): return self._conexao.rollback()
     def execute(self, *args, **kwargs): return self._conexao.execute(*args, **kwargs)
 
     def __getattr__(self, name):
@@ -120,6 +121,7 @@ def criar_tabelas():
     is_postgres = DATABASE_URL is not None
     auto_inc = "SERIAL PRIMARY KEY" if is_postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
     now_func = "CURRENT_DATE" if is_postgres else "(date('now'))"
+    timestamp_func = "CURRENT_TIMESTAMP" if is_postgres else "(datetime('now'))"
 
     # Criamos as tabelas usando placeholders adaptados (aunque aqui não usamos)
     cursor.execute(f'''
@@ -179,7 +181,8 @@ def criar_tabelas():
             data_atualizacao TEXT NOT NULL DEFAULT {now_func},
             status TEXT NOT NULL DEFAULT 'Pendente',
             observacoes TEXT,
-            valor_total REAL NOT NULL DEFAULT 0.0
+            valor_total REAL NOT NULL DEFAULT 0.0,
+            codigo_orcamento TEXT UNIQUE
         )
     ''')
 
@@ -193,6 +196,30 @@ def criar_tabelas():
             descricao_personalizada TEXT,
             valor_unitario REAL NOT NULL,
             FOREIGN KEY (orcamento_id) REFERENCES orcamentos(id) ON DELETE CASCADE
+        )
+    ''')
+
+    # Tabela de usuários
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id {auto_inc},
+            nome TEXT NOT NULL,
+            login TEXT NOT NULL UNIQUE,
+            senha TEXT NOT NULL,
+            email TEXT NOT NULL,
+            tipo TEXT NOT NULL DEFAULT 'comum'
+        )
+    ''')
+
+    # Tabela de histórico (log de ações)
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS historico (
+            id {auto_inc},
+            data_hora TEXT NOT NULL DEFAULT {timestamp_func},
+            usuario_nome TEXT NOT NULL,
+            usuario_login TEXT NOT NULL,
+            acao TEXT NOT NULL,
+            detalhes TEXT NOT NULL
         )
     ''')
 

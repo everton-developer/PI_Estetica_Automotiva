@@ -37,6 +37,27 @@
 <div class="row g-4">
     <!-- Informações do Orçamento -->
     <div class="col-lg-8">
+        <!-- Código Identificador -->
+        <div class="card mb-4">
+            <div class="card-body py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <small class="text-secondary text-uppercase" style="letter-spacing: 1px; font-weight: 600;">
+                            <i class="bi bi-key me-1"></i> Código Identificador do Orçamento
+                        </small>
+                        <p class="fw-700 mb-0" style="font-size: 1.2rem; color: var(--accent-primary); letter-spacing: 2px; font-family: monospace;">
+                            {{ orcamento[14] }}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end no-print">
+                        <button class="btn btn-sm btn-outline-custom" onclick="copiarCodigo()" title="Copiar código">
+                            <i class="bi bi-clipboard me-1"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Dados do Cliente e Veículo -->
         <div class="card mb-4 print-break-after">
             <div class="card-header accent-purple">
@@ -173,7 +194,7 @@
                                 <td class="fw-500">{{ item[2] }}</td>
                                 <td class="text-secondary">{{ item[3] or '—' }}</td>
                                 <td>
-                                    {% if item[7] == 'Seguro' %}
+                                    {% if item[5] == 'Seguro' %}
                                     <span class="badge-aprovado"><i class="bi bi-shield-check me-1"></i>Seguro</span>
                                     {% else %}
                                     <span class="badge-pendente"><i class="bi bi-person me-1"></i>Particular</span>
@@ -283,8 +304,12 @@
     </div>
     {% endif %}
 
+    <div style="margin-top: 80px; text-align: center;">
+        <p style="font-size: 0.9rem;"><strong>Código Identificador:</strong> {{ orcamento[14] }}</p>
+    </div>
+
     <!-- Assinatura e Carimbo -->
-    <div style="margin-top: 180px;">
+    <div style="margin-top: 100px;">
         <div class="row">
             <div class="col-6 text-center">
                 <div style="border-top: 1px solid #000; margin: 0 30px; padding-top: 8px;">
@@ -308,50 +333,47 @@
 
 {% block scripts %}
 <script>
+    function copiarCodigo() {
+        const codigo = '{{ orcamento[14] }}';
+        navigator.clipboard.writeText(codigo).then(function () {
+            // Feedback visual
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Copiado!';
+            btn.style.borderColor = 'var(--accent-success)';
+            btn.style.color = 'var(--accent-success)';
+            setTimeout(function () {
+                btn.innerHTML = originalHTML;
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 2000);
+        });
+    }
+
     function compartilharWhatsApp() {
-        const orcNum = '{{ orcamento[0] }}';
-        const cliente = '{{ orcamento[3] }}';
-        const veiculo = '{{ orcamento[7] }}';
-        const placa = '{{ orcamento[6]|format_placa }}';
-        const total = 'R$ {{ "%.2f"|format(orcamento[12])|replace(".",",") }}';
-        const status = '{{ orcamento[11] }}';
-        const url = window.location.href;
+        const codigo = '{{ orcamento[14] }}';
 
         const msg =
-            `✨ *Orçamento #${orcNum} - Studio Alex Dantas Martelinho de Ouro*
+            `✨ *Studio Alex Dantas Martelinho de Ouro*
 
-👤 *Cliente:* ${cliente}
-🚗 *Veículo:* ${veiculo} (${placa})
-💰 *Valor Total:* ${total}
-📊 *Status:* ${status}
+Segue o orçamento, para visualizá-lo copie o código identificador e acesse nosso site https://studio-alex-dantas.vercel.app
 
-🔗 Acesse o orçamento em: ${url}`;
+🔑 *Código Identificador:* ${codigo}`;
 
         window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
     }
 
     function compartilharEmail() {
         const orcNum = '{{ orcamento[0] }}';
-        const cliente = '{{ orcamento[3] }}';
-        const veiculo = '{{ orcamento[7] }}';
-        const placa = '{{ orcamento[6]|format_placa }}';
-        const total = 'R$ {{ "%.2f"|format(orcamento[12])|replace(".",",") }}';
-        const status = '{{ orcamento[11] }}';
-        const url = window.location.href;
+        const codigo = '{{ orcamento[14] }}';
 
         const assunto = `Orçamento #${orcNum} - Studio Alex Dantas`;
         const corpo =
             `Olá,
 
-Segue abaixo o detalhamento do Orçamento #${orcNum}:
+Segue o orçamento, para visualizá-lo copie o código identificador e acesse nosso site https://studio-alex-dantas.vercel.app
 
-Cliente: ${cliente}
-Veículo: ${veiculo} (Placa: ${placa})
-Valor Total: ${total}
-Status: ${status}
-
-Para visualizar o orçamento completo acesse:
-${url}
+Código Identificador: ${codigo}
 
 Atenciosamente,
 Studio Alex Dantas Martelinho de Ouro`;

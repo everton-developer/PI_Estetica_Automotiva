@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamento - Studio Alex Dantas Martelinho de Ouro</title>
+    <meta name="description" content="Visualização de orçamento - Studio Alex Dantas Martelinho de Ouro">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='icone.ico') }}">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Script para evitar flash de tema errado -->
+    <script>
+        (function () {
+            var theme = localStorage.getItem('lb-theme') || 'dark';
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+
+    <style>
+        /* ===== DARK THEME (padrão) ===== */
+        :root,
+        [data-theme="dark"] {
+            --accent-primary: #6c5ce7;
+            --accent-secondary: #a29bfe;
+            --accent-success: #00b894;
+            --accent-warning: #fdcb6e;
+            --accent-danger: #e17055;
+            --accent-info: #74b9ff;
+            --bg-dark: #0a0a0f;
+            --bg-card: #13131a;
+            --bg-card-hover: #1a1a25;
+            --bg-input: #1e1e2a;
+            --border-color: #2d2d3a;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --navbar-bg: rgba(13, 13, 20, 0.95);
+            --gradient-1: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+            --gradient-2: linear-gradient(135deg, #00b894 0%, #55efc4 100%);
+            --gradient-3: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%);
+        }
+
+        /* ===== LIGHT THEME ===== */
+        [data-theme="light"] {
+            --bg-dark: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8f9fa;
+            --bg-input: #f5f6f8;
+            --border-color: #dde1e7;
+            --text-primary: #1a1a2e;
+            --text-secondary: #6b7280;
+            --navbar-bg: rgba(255, 255, 255, 0.95);
+            --accent-primary: #5a4bd1;
+            --accent-secondary: #8b7cf6;
+            --accent-success: #059669;
+            --accent-warning: #d97706;
+            --accent-danger: #dc2626;
+            --accent-info: #2563eb;
+        }
+
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: var(--navbar-bg) !important;
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.8rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar-brand i {
+            -webkit-text-fill-color: #6c5ce7;
+            margin-right: 6px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(108, 92, 231, 0.3);
+            box-shadow: 0 8px 32px rgba(108, 92, 231, 0.1);
+        }
+
+        .card-header {
+            background: transparent !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-header.accent-purple {
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .card-header.accent-green {
+            border-left: 3px solid var(--accent-success);
+        }
+
+        .table {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: var(--border-color);
+        }
+
+        .table thead th {
+            background: rgba(108, 92, 231, 0.08);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-color);
+            padding: 0.8rem;
+        }
+
+        .table tbody td {
+            padding: 0.75rem 0.8rem;
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(108, 92, 231, 0.05);
+        }
+
+        .section-divider {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin: 0.8rem 0;
+            opacity: 0.6;
+        }
+
+        .badge-pendente {
+            background: rgba(253, 203, 110, 0.15);
+            color: var(--accent-warning);
+            font-weight: 600;
+            padding: 0.4em 0.8em;
+            border-radius: 8px;
+        }
+
+        .badge-aprovado {
+            background: rgba(0, 184, 148, 0.15);
+            color: var(--accent-success);
+            font-weight: 600;
+            padding: 0.4em 0.8em;
+            border-radius: 8px;
+        }
+
+        .badge-recusado {
+            background: rgba(225, 112, 85, 0.15);
+            color: var(--accent-danger);
+            font-weight: 600;
+            padding: 0.4em 0.8em;
+            border-radius: 8px;
+        }
+
+        .badge-concluido {
+            background: rgba(116, 185, 255, 0.15);
+            color: var(--accent-info);
+            font-weight: 600;
+            padding: 0.4em 0.8em;
+            border-radius: 8px;
+        }
+
+        .btn-primary-custom {
+            background: var(--gradient-1);
+            border: none;
+            color: white;
+            font-weight: 600;
+            border-radius: 10px;
+            padding: 0.6rem 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+            color: white;
+        }
+
+        .btn-outline-custom {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 500;
+            border-radius: 10px;
+            padding: 0.6rem 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-custom:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .theme-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            margin-left: 8px;
+        }
+
+        .theme-toggle:hover {
+            color: var(--text-primary);
+            background: rgba(108, 92, 231, 0.15);
+        }
+
+        footer {
+            margin-top: 60px;
+            padding: 1.5rem;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .container {
+            max-width: 1200px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        /* ===== PRINT-ONLY (hidden on screen, shown on print) ===== */
+        .print-only {
+            display: none !important;
+        }
+
+        /* ===== PRINT STYLES ===== */
+        @media print {
+
+            .navbar,
+            footer,
+            .no-print,
+            .btn,
+            .alert {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            * {
+                color: #000 !important;
+                -webkit-print-color-adjust: exact;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 12pt;
+            }
+
+            .card {
+                border: 1px solid #333 !important;
+                background: white !important;
+                box-shadow: none !important;
+                border-radius: 4px !important;
+            }
+
+            .card-header {
+                background: #f0f0f0 !important;
+                border-bottom: 1px solid #333 !important;
+                border-left: none !important;
+                color: black !important;
+                font-weight: 700 !important;
+            }
+
+            .table thead th {
+                background: #e0e0e0 !important;
+                color: black !important;
+                border-bottom: 2px solid #000 !important;
+                font-weight: 700 !important;
+            }
+
+            .table td,
+            .table th {
+                color: black !important;
+                border-color: #999 !important;
+            }
+
+            .table tbody tr:hover {
+                background: transparent !important;
+            }
+
+            .text-secondary {
+                color: #333 !important;
+            }
+
+            code {
+                color: black !important;
+                background: transparent !important;
+                font-weight: 700;
+            }
+
+            .badge-pendente,
+            .badge-aprovado,
+            .badge-recusado,
+            .badge-concluido {
+                background: transparent !important;
+                color: black !important;
+                border: none;
+                font-weight: 600;
+                padding: 0;
+            }
+
+            .section-divider {
+                color: #333 !important;
+                opacity: 1 !important;
+            }
+
+            hr {
+                border-color: #999 !important;
+            }
+
+            .container {
+                max-width: 100% !important;
+            }
+
+            .col-lg-8 {
+                width: 100% !important;
+                max-width: 100% !important;
+                flex: 0 0 100% !important;
+            }
+
+            .print-break-after {
+                page-break-after: always;
+            }
+
+            .print-break-before {
+                page-break-before: always;
+                margin-top: 15mm;
+            }
+
+            @page {
+                margin: 15mm;
+
+                @bottom-center {
+                    content: "Página " counter(page) " / " counter(pages);
+                    font-size: 9pt;
+                    color: #666;
+                }
+            }
+
+            .print-signature-footer {
+                margin-top: auto;
+                padding-top: 40px;
+            }
+        }
+
+        [data-theme="light"] .navbar-brand i {
+            -webkit-text-fill-color: #5a4bd1;
+        }
+
+        [data-theme="light"] .table tbody tr:hover {
+            background: rgba(108, 92, 231, 0.04);
+        }
+
+        .alert-success {
+            background: rgba(0, 184, 148, 0.1);
+            border: 1px solid rgba(0, 184, 148, 0.3);
+            color: var(--accent-success);
+            border-radius: 12px;
+        }
+
+        .alert-error,
+        .alert-danger {
+            background: rgba(225, 112, 85, 0.1);
+            border: 1px solid rgba(225, 112, 85, 0.3);
+            color: var(--accent-danger);
+            border-radius: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="/login">
+                <img src="{{ url_for('static', filename='logo_transp.png') }}" alt="Studio Alex Dantas"
+                    style="height:38px; width:auto; vertical-align:middle;" />STUDIO ALEX DANTAS
+            </a>
+            <div class="d-flex align-items-center">
+                <a href="/login" class="btn btn-outline-custom btn-sm no-print">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+                <button class="theme-toggle no-print" id="themeToggle" title="Alternar tema claro/escuro"
+                    onclick="toggleTheme()">
+                    <i class="bi" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4 fade-in">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            <i class="bi {% if category == 'success' %}bi-check-circle{% else %}bi-exclamation-triangle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <div class="mb-4 no-print">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <h2 class="fw-bold mb-0">
+                    <i class="bi bi-receipt me-2" style="color: var(--accent-warning);"></i>
+                    Orçamento <span style="color: var(--accent-primary);">#{{ orcamento[0] }}</span>
+                </h2>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-outline-custom btn-sm" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Imprimir
+                </button>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <!-- Código Identificador -->
+                <div class="card mb-4">
+                    <div class="card-body text-center py-3">
+                        <small class="text-secondary text-uppercase" style="letter-spacing: 1px; font-weight: 600;">
+                            Código Identificador
+                        </small>
+                        <p class="fw-700 mb-0" style="font-size: 1.3rem; color: var(--accent-primary); letter-spacing: 2px; font-family: monospace;">
+                            {{ orcamento[14] }}
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Dados do Cliente e Veículo -->
+                <div class="card mb-4 print-break-after">
+                    <div class="card-header accent-purple">
+                        <i class="bi bi-info-circle me-2"></i> Informações
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="section-divider"><i class="bi bi-person me-1"></i> Cliente</p>
+                                <p class="fw-600 mb-1" style="font-size: 1.1rem;">{{ orcamento[3] }}</p>
+                                <p class="text-secondary mb-1"><i class="bi bi-telephone me-1"></i>
+                                    {% if orcamento[4] %}
+                                    {% if orcamento[4]|length == 11 %}
+                                    ({{ orcamento[4][:2] }}) {{ orcamento[4][2:7] }}-{{ orcamento[4][7:] }}
+                                    {% elif orcamento[4]|length == 10 %}
+                                    ({{ orcamento[4][:2] }}) {{ orcamento[4][2:6] }}-{{ orcamento[4][6:] }}
+                                    {% else %}
+                                    {{ orcamento[4] }}
+                                    {% endif %}
+                                    {% else %}Não informado{% endif %}
+                                </p>
+                                <p class="text-secondary mb-0"><i class="bi bi-card-text me-1"></i> CPF:
+                                    {% if orcamento[5] and orcamento[5]|length == 11 %}
+                                    {{ orcamento[5][:3] }}.{{ orcamento[5][3:6] }}.{{ orcamento[5][6:9] }}-{{ orcamento[5][9:] }}
+                                    {% else %}
+                                    {{ orcamento[5] or 'Não informado' }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="section-divider"><i class="bi bi-truck me-1"></i> Veículo</p>
+                                <p class="fw-600 mb-1" style="font-size: 1.1rem;">{{ orcamento[7] }}</p>
+                                <p class="text-secondary mb-1">
+                                    <i class="bi bi-hash me-1"></i> Placa:
+                                    <code style="color: var(--accent-info);">
+                                        {% if orcamento[6] and orcamento[6]|length >= 4 %}
+                                        {{ orcamento[6][:3] }}-{{ orcamento[6][3:] }}
+                                        {% else %}{{ orcamento[6] }}{% endif %}
+                                    </code>
+                                </p>
+                                <p class="text-secondary mb-0">
+                                    {% if orcamento[8] %}Ano: {{ orcamento[8] }}{% endif %}
+                                    {% if orcamento[9] %} | Cor: {{ orcamento[9] }}{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <hr style="border-color: var(--border-color);">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <small class="text-secondary">Data e hora do Orçamento</small>
+                                <p class="fw-500">{{ orcamento[10] }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-secondary">Status</small>
+                                <p>
+                                    {% if orcamento[11] == 'Pendente' %}
+                                    <span class="badge-pendente"><i
+                                            class="bi bi-hourglass-split me-1"></i>Pendente</span>
+                                    {% elif orcamento[11] == 'Aprovado' %}
+                                    <span class="badge-aprovado"><i
+                                            class="bi bi-check-circle me-1"></i>Aprovado</span>
+                                    {% elif orcamento[11] == 'Recusado' %}
+                                    <span class="badge-recusado"><i
+                                            class="bi bi-x-circle me-1"></i>Recusado</span>
+                                    {% elif orcamento[11] == 'Concluído' %}
+                                    <span class="badge-concluido"><i
+                                            class="bi bi-trophy me-1"></i>Concluído</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-4">
+                                <small class="text-secondary">Valor Total</small>
+                                <p class="fw-700" style="font-size: 1.5rem; color: var(--accent-success);">
+                                    R$ {{ "%.2f"|format(orcamento[12])|replace('.', ',') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Itens do Orçamento -->
+                <div class="card mb-4 print-break-before">
+                    <div class="card-header accent-green">
+                        <span><i class="bi bi-list-check me-2"></i> Itens do Orçamento</span>
+                    </div>
+                    <div class="card-body">
+                        {% if itens %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Serviço</th>
+                                        <th>Descrição</th>
+                                        <th>Tipo</th>
+                                        <th class="text-end">Valor Unit.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in itens %}
+                                    <tr>
+                                        <td class="fw-500">{{ item[2] }}</td>
+                                        <td class="text-secondary">{{ item[3] or '—' }}</td>
+                                        <td>
+                                            {% if item[5] == 'Seguro' %}
+                                            <span class="badge-aprovado"><i
+                                                    class="bi bi-shield-check me-1"></i>Seguro</span>
+                                            {% else %}
+                                            <span class="badge-pendente"><i
+                                                    class="bi bi-person me-1"></i>Particular</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end fw-600" style="color: var(--accent-success);">R$
+                                            {{ "%.2f"|format(item[4])|replace('.', ',') }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    <tr style="border-top: 2px solid var(--accent-primary);">
+                                        <td colspan="3" class="text-end fw-700"
+                                            style="font-size: 1.1rem; white-space: nowrap;">
+                                            TOTAL:</td>
+                                        <td class="text-end fw-700"
+                                            style="font-size: 1.3rem; color: var(--accent-success); white-space: nowrap;">
+                                            R$ {{ "%.2f"|format(orcamento[12])|replace('.', ',') }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-inbox fs-1" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                            <p class="text-secondary mt-2">Nenhum item no orçamento.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if orcamento[13] %}
+                <!-- Observações -->
+                <div class="card mb-4">
+                    <div class="card-header" style="border-left: 3px solid var(--accent-info);">
+                        <i class="bi bi-chat-text me-2"></i> Observações
+                    </div>
+                    <div class="card-body">
+                        <p style="white-space: pre-wrap;" class="mb-0">{{ orcamento[13] }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de impressão: Observações + Assinatura -->
+    <div class="print-only print-break-before">
+        {% if orcamento[13] %}
+        <div class="card mt-3 mb-4">
+            <div class="card-header">
+                <strong>Observações</strong>
+            </div>
+            <div class="card-body">
+                <p style="white-space: pre-wrap;">{{ orcamento[13] }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="margin-top: 80px; text-center;">
+            <p style="font-size: 0.9rem;"><strong>Código Identificador:</strong> {{ orcamento[14] }}</p>
+        </div>
+
+        <div style="margin-top: 100px;">
+            <div class="row">
+                <div class="col-6 text-center">
+                    <div style="border-top: 1px solid #000; margin: 0 30px; padding-top: 8px;">
+                        <strong>Assinatura do Cliente</strong><br>
+                        <small>{{ orcamento[3] }}</small><br>
+                        <small>CPF: {{ orcamento[5] }}</small>
+                    </div>
+                </div>
+                <div class="col-6 text-center">
+                    <div style="border-top: 1px solid #000; margin: 0 30px; padding-top: 8px;">
+                        <strong>Carimbo da Loja</strong><br>
+                        <small>Studio Alex Dantas</small><br>
+                        <small>Martelinho de Ouro</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 - Studio Alex Dantas Martelinho de Ouro</p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function getTheme() {
+            return localStorage.getItem('lb-theme') || 'dark';
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            document.documentElement.setAttribute('data-theme', theme);
+            var icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            }
+        }
+
+        function toggleTheme() {
+            var current = getTheme();
+            var next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('lb-theme', next);
+            applyTheme(next);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            applyTheme(getTheme());
+        });
+    </script>
+</body>
+
+</html>

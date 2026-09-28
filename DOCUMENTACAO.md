@@ -82,3 +82,16 @@ Todo o desenvolvimento técnico, bem como a implementação de integrações, fo
 *   **Framework Visual UI:** Documentação do Bootstrap v5.3 — *https://getbootstrap.com/docs/5.3/getting-started/introduction/*
 *   **Integração de CEP:** ViaCEP WEBSERVICE API de Códigos Postais — *https://viacep.com.br/*
 *   **Integração Mensageria:** API Universal do WhatsApp (Click to Chat) — *https://faq.whatsapp.com/5913398998672934*
+
+---
+
+## 6. Histórico de Atualizações Recentes (Changelog)
+
+**Atualizações de Regra de Negócio e UX/UI implementadas:**
+*   **Armazenamento de Dados Limpos:** Os campos de CPF, Telefone e CEP passaram a ser registrados no banco de dados apenas como números, via higienização em Regex. A formatação visual (com traços e pontos) foi delegada aos Custom Filters do Jinja no Frontend.
+*   **Formatação de Placas:** As placas veiculares (ex: `ABC-1D23`) agora são automaticamente convertidas para caixa alta e têm hífens ignorados no banco, mas injetados com Regex customizado via template engine ao exibir.
+*   **Flexibilidade no Cadastro de Clientes:** O CPF deixou de ser um campo de preenchimento obrigatório para viabilizar novos modelos de negócio. O banco de dados foi migrado para suprimir restrições do tipo `NOT NULL` referentes a essa coluna.
+*   **Orçamentos Simplificados:** A coluna de Quantidade (`qtd`) foi revogada dos modelos de Orçamento, pois os serviços prestados possuem, por sua natureza, uma incidência unitária indivisível na negociação.
+*   **Filtro de Sessão e Status:** Ao re-acessar o painel de visualização principal dos orçamentos, o sistema deixou de manter a lembrança forçada do último status (por meio de reset na variável de `session`). O status retornará de forma previsível e absoluta a “Todos”.
+*   **Interface em Formulários:** Refinamentos nas listas de seleção suspensa (Ocultamento de preço de tabela no momento da escolha de serviço, pré-definição de select de Tipo como "Selecione") e redimensionamento dinâmico responsivo no botão de inserção de itens (`btn-sm` / `w-100` nas quebras de tela mobile).
+*   **Script de Reset:** Adição de um arquivo `reset_db.py` autônomo (não hospedado) que permite purificar tabelas e recriá-las a partir do zero nas bases relacionais em nuvem da Vercel.
