@@ -258,8 +258,7 @@
                             <i class="bi bi-check-circle me-1"></i> Aprovado
                         </button>
                         <button type="submit" name="status" value="Recusado"
-                            class="btn {% if orcamento[11] == 'Recusado' %}btn-danger-custom{% else %}btn-outline-custom{% endif %}"
-                            style="{% if orcamento[11] == 'Recusado' %}background: var(--accent-danger); color: white;{% endif %}">
+                            class="btn {% if orcamento[11] == 'Recusado' %}btn-danger-custom active{% else %}btn-outline-custom{% endif %}">
                             <i class="bi bi-x-circle me-1"></i> Recusado
                         </button>
                         <button type="submit" name="status" value="Concluído"
@@ -352,11 +351,13 @@
 
     function compartilharWhatsApp() {
         const codigo = '{{ orcamento[14] }}';
+        const urlVisualizar = `${window.location.origin}/orcamento/visualizar/${encodeURIComponent(codigo)}`;
 
         const msg =
             `✨ *Studio Alex Dantas Martelinho de Ouro*
 
-Segue o orçamento, para visualizá-lo copie o código identificador e acesse nosso site https://studio-alex-dantas.vercel.app
+Segue o orçamento, para visualizá-lo acesse o link direto ou consulte pelo código em nosso site:
+🔗 ${urlVisualizar}
 
 🔑 *Código Identificador:* ${codigo}`;
 
@@ -366,12 +367,14 @@ Segue o orçamento, para visualizá-lo copie o código identificador e acesse no
     function compartilharEmail() {
         const orcNum = '{{ orcamento[0] }}';
         const codigo = '{{ orcamento[14] }}';
+        const urlVisualizar = `${window.location.origin}/orcamento/visualizar/${encodeURIComponent(codigo)}`;
 
         const assunto = `Orçamento #${orcNum} - Studio Alex Dantas`;
         const corpo =
             `Olá,
 
-Segue o orçamento, para visualizá-lo copie o código identificador e acesse nosso site https://studio-alex-dantas.vercel.app
+Segue o orçamento, para visualizá-lo acesse o link abaixo ou consulte pelo código no site:
+${urlVisualizar}
 
 Código Identificador: ${codigo}
 

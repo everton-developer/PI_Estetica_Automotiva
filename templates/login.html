@@ -409,7 +409,8 @@
                                 <input type="text" class="form-control" id="codigo_orcamento"
                                     name="codigo_orcamento"
                                     placeholder="Cole aqui o código recebido"
-                                    maxlength="15" required autocomplete="off">
+                                    maxlength="30" required autocomplete="off"
+                                    onchange="this.value = this.value.trim()">
                             </div>
                             <div class="form-text" style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.4rem;">
                                 <i class="bi bi-info-circle me-1"></i>

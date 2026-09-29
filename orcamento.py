@@ -6,12 +6,12 @@ import secrets
 BRT = timezone(timedelta(hours=-3))
 
 # Caracteres permitidos no código identificador de orçamento
-# Alfanuméricos + caracteres especiais (exceto espaço, ponto, vírgula e similares)
-CODIGO_CHARS = string.ascii_letters + string.digits + '!@#$%&*_-'
+# Usamos caracteres alfanuméricos e separadores seguros para URLs (sem '#', '&', '?' ou '%')
+CODIGO_CHARS = string.ascii_letters + string.digits + '-_'
 
 
 def gerar_codigo_orcamento():
-    """Gera um código identificador único de 15 caracteres alfanuméricos com caracteres especiais."""
+    """Gera um código identificador único de 15 caracteres alfanuméricos seguro para URLs."""
     while True:
         codigo = ''.join(secrets.choice(CODIGO_CHARS) for _ in range(15))
         # Verifica se o código já existe no banco
@@ -162,7 +162,10 @@ def buscar_orcamento_por_id(id):
 
 
 def buscar_orcamento_por_codigo(codigo):
-    """Busca um orçamento pelo código identificador."""
+    """Busca um orçamento pelo código identificador (para acesso de clientes)."""
+    if not codigo:
+        return None
+    codigo = str(codigo).strip()
     conexao = conectar()
     if conexao is None:
         return None
@@ -185,9 +188,13 @@ def buscar_orcamento_por_codigo(codigo):
         if row:
             row_list = list(row)
             try:
-                dt_obj = datetime.strptime(str(row_list[10]), '%Y-%m-%d %H:%M')
-                row_list[10] = dt_obj.strftime('%d/%m/%Y %H:%M')
-            except ValueError:
+                val = row_list[10]
+                if isinstance(val, datetime):
+                    row_list[10] = val.strftime('%d/%m/%Y %H:%M')
+                elif val:
+                    dt_obj = datetime.strptime(str(val)[:16], '%Y-%m-%d %H:%M')
+                    row_list[10] = dt_obj.strftime('%d/%m/%Y %H:%M')
+            except (ValueError, TypeError):
                 pass
             return tuple(row_list)
         return None

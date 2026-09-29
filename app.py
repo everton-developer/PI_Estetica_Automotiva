@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, render_template, Blueprint, flash, jsonify, session
 from functools import wraps
+import urllib.parse
 
 import cliente
 import servico
@@ -101,7 +102,8 @@ def login_page():
                     'codigo': codigo_orcamento,
                     'orcamento_id': orc[0]
                 }
-                return redirect(f'/orcamento/visualizar/{codigo_orcamento}')
+                codigo_url = urllib.parse.quote(codigo_orcamento, safe='')
+                return redirect(f'/orcamento/visualizar/{codigo_url}')
             else:
                 flash("Código de orçamento inválido ou não encontrado.", "error")
                 return render_template('login.html')
@@ -137,22 +139,32 @@ def logout():
 
 
 # ==================== VISUALIZAÇÃO DE ORÇAMENTO PELO CLIENTE ====================
-@auth_bp.route('/orcamento/visualizar/<codigo>')
+@auth_bp.route('/orcamento/visualizar/<path:codigo>')
 def visualizar_orcamento_cliente(codigo):
-    # Permite acesso se houver sessão de cliente com esse código OU se for usuário logado
+    codigo = urllib.parse.unquote(codigo).strip()
     cliente_orc = session.get('cliente_orcamento')
     usuario_logado = session.get('usuario')
 
-    if not usuario_logado and (not cliente_orc or cliente_orc.get('codigo') != codigo):
-        flash("Faça login ou informe o código do orçamento para visualizá-lo.", "error")
-        return redirect('/login')
+    # Recupera código completo da sessão caso tenha sido truncado por '#' no navegador
+    if cliente_orc:
+        sess_codigo = cliente_orc.get('codigo', '')
+        if sess_codigo == codigo or (sess_codigo and sess_codigo.startswith(codigo)):
+            codigo = sess_codigo
 
     orc = orcamento.buscar_orcamento_por_codigo(codigo)
     if orc is None:
+        # Se não encontrou e não está logado, tenta resolver via hash no navegador
+        if not usuario_logado:
+            return render_template('resolver_codigo.html', codigo_parcial=codigo)
         flash("Orçamento não encontrado ou foi excluído.", "error")
-        if usuario_logado:
-            return redirect('/orcamentos')
-        return redirect('/login')
+        return redirect('/orcamentos')
+
+    # Se cliente não logado visualizou com sucesso, garante que a sessão está salva
+    if not usuario_logado:
+        session['cliente_orcamento'] = {
+            'codigo': orc[14],
+            'orcamento_id': orc[0]
+        }
 
     itens = orcamento.listar_itens_orcamento(orc[0])
     return render_template('orcamento_cliente.html', orcamento=orc, itens=itens)
