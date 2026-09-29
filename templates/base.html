@@ -93,12 +93,19 @@
 
         .navbar-brand {
             font-weight: 700;
-            font-size: 1.4rem;
+            font-size: 1.35rem;
             background: var(--gradient-1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             letter-spacing: -0.5px;
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand img {
+            margin-right: 8px;
         }
 
         .navbar-brand i {
@@ -106,13 +113,42 @@
             margin-right: 6px;
         }
 
+        @media (min-width: 992px) {
+            .navbar-brand {
+                margin-left: -25px; /* Joga o logo e nome mais para a esquerda */
+            }
+
+            .navbar-right-cluster {
+                margin-right: 35px; /* Alinha a lua e o bloco da direita mais para a esquerda */
+            }
+
+            .navbar-nav .nav-link {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 0.35rem 0.75rem !important;
+                font-size: 0.82rem;
+                gap: 3px;
+                min-width: 68px;
+            }
+
+            .navbar-nav .nav-link i {
+                font-size: 1.15rem;
+                margin-right: 0 !important;
+                line-height: 1;
+                display: block;
+            }
+        }
+
         .nav-link {
             color: var(--text-secondary) !important;
             font-weight: 500;
-            font-size: 0.9rem;
-            padding: 0.5rem 1rem !important;
+            font-size: 0.88rem;
+            padding: 0.5rem 0.9rem !important;
             border-radius: 8px;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
             margin: 0 2px;
         }
 
@@ -122,8 +158,12 @@
             background: rgba(108, 92, 231, 0.15);
         }
 
-        .nav-link i {
-            margin-right: 5px;
+        .user-greeting {
+            line-height: 1.15;
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+            justify-content: center;
         }
 
         /* ===== CARDS ===== */
@@ -301,36 +341,46 @@
         }
 
         /* ===== BADGES ===== */
+        .badge-pendente,
+        .badge-aprovado,
+        .badge-recusado,
+        .badge-concluido {
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            padding: 0.42em 0.85em;
+            font-size: 0.83rem;
+            font-weight: 600;
+            border-radius: 8px;
+            gap: 6px;
+        }
+
+        .badge-pendente i,
+        .badge-aprovado i,
+        .badge-recusado i,
+        .badge-concluido i {
+            font-size: 0.95rem;
+            margin-right: 0 !important;
+        }
+
         .badge-pendente {
             background: rgba(253, 203, 110, 0.15);
             color: var(--accent-warning);
-            font-weight: 600;
-            padding: 0.4em 0.8em;
-            border-radius: 8px;
         }
 
         .badge-aprovado {
             background: rgba(0, 184, 148, 0.15);
             color: var(--accent-success);
-            font-weight: 600;
-            padding: 0.4em 0.8em;
-            border-radius: 8px;
         }
 
         .badge-recusado {
             background: rgba(225, 112, 85, 0.15);
             color: var(--accent-danger);
-            font-weight: 600;
-            padding: 0.4em 0.8em;
-            border-radius: 8px;
         }
 
         .badge-concluido {
             background: rgba(116, 185, 255, 0.15);
             color: var(--accent-info);
-            font-weight: 600;
-            padding: 0.4em 0.8em;
-            border-radius: 8px;
         }
 
         /* ===== FLASH MESSAGES ===== */
@@ -436,6 +486,7 @@
             * {
                 color: #000 !important;
                 -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
             body {
@@ -645,39 +696,40 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="bi bi-house"></i> Início</a>
+                        <a class="nav-link" href="/"><i class="bi bi-house"></i><span>Início</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/clientes"><i class="bi bi-people"></i> Clientes</a>
+                        <a class="nav-link" href="/clientes"><i class="bi bi-people"></i><span>Clientes</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/veiculos"><i class="bi bi-truck"></i> Veículos</a>
+                        <a class="nav-link" href="/veiculos"><i class="bi bi-truck"></i><span>Veículos</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/servicos"><i class="bi bi-wrench"></i> Serviços</a>
+                        <a class="nav-link" href="/servicos"><i class="bi bi-wrench"></i><span>Serviços</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/orcamentos"><i class="bi bi-receipt"></i> Orçamentos</a>
+                        <a class="nav-link" href="/orcamentos"><i class="bi bi-receipt"></i><span>Orçamentos</span></a>
                     </li>
                     {% if session.get('usuario', {}).get('tipo') == 'adm' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="/usuarios"><i class="bi bi-person-gear"></i> Usuários</a>
+                        <a class="nav-link" href="/usuarios"><i class="bi bi-person-gear"></i><span>Usuários</span></a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/historico"><i class="bi bi-clock-history"></i> Histórico</a>
+                        <a class="nav-link" href="/historico"><i class="bi bi-clock-history"></i><span>Histórico</span></a>
                     </li>
                     {% endif %}
                 </ul>
-                <div class="d-flex align-items-center ms-2">
+                <div class="d-flex align-items-center ms-lg-3 navbar-right-cluster">
                     {% if session.get('usuario') %}
-                    <span class="text-secondary me-2 d-none d-lg-inline" style="font-size: 0.82rem;">
-                        <i class="bi bi-person-circle me-1"></i>{{ session['usuario']['nome'] }}
-                    </span>
-                    <a href="/logout" class="btn btn-sm btn-outline-custom no-print" title="Sair do sistema"
-                        style="padding: 0.3rem 0.7rem; font-size: 0.8rem;">
-                        <i class="bi bi-box-arrow-right me-1"></i>Sair
+                    <div class="user-greeting me-3 d-none d-sm-flex flex-column text-end justify-content-center">
+                        <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 500;">Olá,</span>
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary);">{{ session['usuario']['nome'] }}</span>
+                    </div>
+                    <a href="/logout" class="btn btn-sm btn-outline-custom no-print d-inline-flex align-items-center gap-1 me-2" title="Sair do sistema"
+                        style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 8px;">
+                        <i class="bi bi-box-arrow-right"></i><span>Sair</span>
                     </a>
                     {% endif %}
                     <button class="theme-toggle no-print" id="themeToggle" title="Alternar tema claro/escuro"

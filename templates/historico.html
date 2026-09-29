@@ -41,7 +41,7 @@
                         <th style="width: 160px;">Data/Hora</th>
                         <th style="width: 150px;">Usuário</th>
                         <th style="width: 100px;">Login</th>
-                        <th style="width: 180px;">Ação</th>
+                        <th style="width: 260px; min-width: 240px; padding-left: 1.25rem; padding-right: 1.25rem;">Ação</th>
                         <th>Detalhes</th>
                     </tr>
                 </thead>
@@ -54,7 +54,7 @@
                         </td>
                         <td class="fw-500">{{ r[2] }}</td>
                         <td><code style="color: var(--accent-primary);">{{ r[3] }}</code></td>
-                        <td>
+                        <td style="white-space: nowrap; padding-left: 1.25rem; padding-right: 1.25rem;">
                             {% if 'Login' in r[4] or 'Logout' in r[4] %}
                             <span class="badge-concluido"><i class="bi bi-box-arrow-in-right me-1"></i>{{ r[4] }}</span>
                             {% elif 'Cadastro' in r[4] or 'Criação' in r[4] or 'Adição' in r[4] %}
