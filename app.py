@@ -1,7 +1,7 @@
 from flask import Flask, request, redirect, render_template, Blueprint, flash, jsonify, session
 from functools import wraps
 import urllib.parse
-
+import dashboard
 import cliente
 import servico
 import veiculo
@@ -216,6 +216,19 @@ def home():
                            orcamentos_pendentes=orcamentos_pendentes,
                            orcamentos_aprovados=orcamentos_aprovados)
 
+
+@index_bp.route('/dashboard')
+@login_obrigatorio
+def dashboard_page():
+    periodo = request.args.get('periodo', '7d')
+    data_inicio, data_fim, periodo = dashboard.calcular_periodo(
+        periodo,
+        request.args.get('data_inicio'),
+        request.args.get('data_fim')
+    )
+    dados = dashboard.obter_dados_dashboard(data_inicio, data_fim)
+    dados['periodo_ativo'] = periodo
+    return render_template('dashboard.html', **dados)
 
 # ==================== CLIENTES ====================
 clientes_bp = Blueprint('clientes', __name__)
