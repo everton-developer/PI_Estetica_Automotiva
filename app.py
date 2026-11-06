@@ -1,7 +1,8 @@
-from flask import Flask, request, redirect, render_template, Blueprint, flash, jsonify, session
+import re
+from flask import Flask, request, redirect, render_template, Blueprint, flash, jsonify, session, url_for
 from functools import wraps
 import urllib.parse
-
+import pandas as pd
 import cliente
 import servico
 import veiculo
@@ -706,6 +707,156 @@ app.register_blueprint(usuarios_bp)
 app.register_blueprint(historico_bp)
 
 
+@app.route('/importar-planilha', methods=['POST'])
+def importar_planilha():
+    if 'arquivo' not in request.files:
+        flash('Nenhum arquivo selecionado.', 'danger')
+        return redirect('/')
+    
+    arquivo = request.files['arquivo']
+    if arquivo.filename == '':
+        flash('Nenhum arquivo selecionado.', 'danger')
+        return redirect('/')
+
+    try:
+        # 1. Leitura do ficheiro com o pandas
+        if arquivo.filename.endswith('.csv'):
+            df = pd.read_csv(arquivo)
+        else:
+            df = pd.read_excel(arquivo)
+
+        # 2. Normalização dinâmica de colunas (ignora acentos, espaços e maiúsculas/minúsculas)
+        def limpar_coluna(col):
+            t = str(col).lower().strip()
+            t = re.sub(r'[_\-\s]+', '', t)
+            substituicoes = {'á':'a', 'à':'a', 'ã':'a', 'â':'a', 'é':'e', 'ê':'e', 'í':'i', 'ó':'o', 'õ':'o', 'ô':'o', 'ú':'u', 'ç':'c'}
+            for orig, dest in substituicoes.items():
+                t = t.replace(orig, dest)
+            return t
+
+        mapa_colunas = {}
+        for c in df.columns:
+            nc = limpar_coluna(c)
+            if ('nome' in nc and 'cliente' in nc) or nc in ['nome', 'cliente']:
+                mapa_colunas[c] = 'nome'
+            elif 'cpf' in nc or 'cnpj' in nc:
+                mapa_colunas[c] = 'cpf'
+            elif 'tel' in nc or 'whats' in nc or 'cel' in nc:
+                mapa_colunas[c] = 'telefone'
+            elif 'mail' in nc:
+                mapa_colunas[c] = 'email'
+            elif 'placa' in nc:
+                mapa_colunas[c] = 'placa'
+            elif 'modelo' in nc:
+                mapa_colunas[c] = 'modelo'
+            elif 'marca' in nc:
+                mapa_colunas[c] = 'marca'
+            elif 'ano' in nc:
+                mapa_colunas[c] = 'ano'
+            elif 'cor' in nc:
+                mapa_colunas[c] = 'cor'
+
+        df = df.rename(columns=mapa_colunas)
+        df = df.fillna('')
+
+        clientes_novos = 0
+        veiculos_novos = 0
+
+        conexao = conectar()
+        cursor = conexao.cursor()
+
+        # 3. Processamento das linhas
+        for _, linha in df.iterrows():
+            nome = str(linha.get('nome', '')).strip()
+            placa = str(linha.get('placa', '')).strip()
+
+            # Descarta linhas em branco, cabeçalhos repetidos e a linha explicativa de instruções
+            if not nome or not placa or 'obrigatório' in nome.lower() or nome.lower() in ['nan', 'none', 'nome cliente', 'nome do cliente']:
+                continue
+
+            cpf = re.sub(r'[^0-9]', '', str(linha.get('cpf', '')))
+            telefone = str(linha.get('telefone', '')).strip()
+            email = str(linha.get('email', '')).strip()
+
+            # Separa Marca e Modelo se vier tudo na mesma célula (ex: "Chevrolet Onix 1.0")
+            modelo_input = str(linha.get('modelo', '')).strip()
+            marca_input = str(linha.get('marca', '')).strip()
+
+            if not marca_input and modelo_input:
+                partes = modelo_input.split(' ', 1)
+                marca = partes[0]
+                modelo = partes[1] if len(partes) > 1 else partes[0]
+            else:
+                marca = marca_input or "Geral"
+                modelo = modelo_input or "Geral"
+
+            ano = str(linha.get('ano', '')).strip().replace('.0', '')
+            cor = str(linha.get('cor', '')).strip()
+
+            # --- ETAPA A: LOCALIZAR OU REGISTAR O CLIENTE ---
+            cliente_id = None
+            if cpf:
+                cursor.execute('SELECT id FROM clientes WHERE cpf = ?', (cpf,))
+                res = cursor.fetchone()
+                if res:
+                    cliente_id = res[0]
+
+            if not cliente_id:
+                cursor.execute('SELECT id FROM clientes WHERE LOWER(nome) = LOWER(?)', (nome,))
+                res = cursor.fetchone()
+                if res:
+                    cliente_id = res[0]
+
+            if not cliente_id:
+                sucesso_c, msg_c = cliente.cadastrar_cliente(
+                    nome=nome,
+                    telefone=telefone,
+                    email=email,
+                    cpf=cpf,
+                    cep='', rua='', numero='', complemento='', bairro='', cidade='', estado=''
+                )
+                
+                # SE FALHAR POR CAUSA DO CPF (ex: CPF inválido), TENTA CADASTRAR SEM O CPF:
+                if not sucesso_c and cpf:
+                    sucesso_c, msg_c = cliente.cadastrar_cliente(
+                        nome=nome,
+                        telefone=telefone,
+                        email=email,
+                        cpf='',
+                        cep='', rua='', numero='', complemento='', bairro='', cidade='', estado=''
+                    )
+
+                if sucesso_c:
+                    clientes_novos += 1
+                    cursor.execute('SELECT id FROM clientes WHERE LOWER(nome) = LOWER(?) ORDER BY id DESC', (nome,))
+                    res = cursor.fetchone()
+                    if res:
+                        cliente_id = res[0]
+
+            # --- ETAPA B: REGISTAR O VEÍCULO ---
+            if cliente_id:
+                sucesso_v, _ = veiculo.cadastrar_veiculo(
+                    marca=marca,
+                    modelo=modelo,
+                    ano=ano,
+                    cor=cor,
+                    placa=placa,
+                    cliente_id=cliente_id
+                )
+                if sucesso_v:
+                    veiculos_novos += 1
+
+        conexao.close()
+
+        flash(
+            f'Importação concluída com sucesso! Novos clientes: {clientes_novos} | Novos veículos: {veiculos_novos}.',
+            'success'
+        )
+
+    except Exception as e:
+        flash(f'Erro durante a importação: {str(e)}', 'danger')
+
+    return redirect('/')
 # ==================== EXECUÇÃO ====================
 if __name__ == '__main__':
     app.run(debug=True)
