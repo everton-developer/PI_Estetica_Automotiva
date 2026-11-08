@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - STUDIO ALEX DANTAS{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-bar-chart-line me-2" style="color: var(--accent-primary);"></i>Painel Administrativo</h2>
+        <p class="text-secondary mb-0">Oficina de martelinho de ouro · visão geral</p>
+    </div>
+</div>
+
+<!-- Filtro de período (clicável) -->
+<div class="card mb-4">
+    <div class="card-body p-2">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex flex-wrap gap-1">
+                <a href="/dashboard?periodo=hoje"
+                   class="btn btn-sm {% if periodo_ativo == 'hoje' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Hoje</a>
+                <a href="/dashboard?periodo=7d"
+                   class="btn btn-sm {% if periodo_ativo == '7d' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Últimos 7 dias</a>
+                <a href="/dashboard?periodo=mes"
+                   class="btn btn-sm {% if periodo_ativo == 'mes' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Este mês</a>
+                <a href="/dashboard?periodo=ultimo_mes"
+                   class="btn btn-sm {% if periodo_ativo == 'ultimo_mes' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Último mês</a>
+                <a href="/dashboard?periodo=custom"
+                   class="btn btn-sm {% if periodo_ativo == 'custom' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Personalizado</a>
+            </div>
+            <div class="text-secondary" style="font-size: 0.8rem;">
+                <i class="bi bi-calendar-event me-1"></i>
+                <strong>{{ data_inicio_fmt }}</strong> até <strong>{{ data_fim_fmt }}</strong>
+            </div>
+        </div>
+
+        {% if periodo_ativo == 'custom' %}
+        <hr style="border-color: var(--border-color); margin: 0.75rem 0;">
+        <form method="GET" action="/dashboard" class="row g-2 align-items-end p-1">
+            <input type="hidden" name="periodo" value="custom">
+            <div class="col-md-4 col-sm-6">
+                <label class="form-label mb-1" style="font-size: 0.75rem;">Data início</label>
+                <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ data_inicio }}" required>
+            </div>
+            <div class="col-md-4 col-sm-6">
+                <label class="form-label mb-1" style="font-size: 0.75rem;">Data fim</label>
+                <input type="date" name="data_fim" class="form-control form-control-sm" value="{{ data_fim }}" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-sm btn-primary-custom w-100">
+                    <i class="bi bi-funnel me-1"></i> Aplicar filtro
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPIs Principais -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card text-start">
+            <div class="stat-label text-uppercase">Faturamento</div>
+            <div class="stat-number mt-2" style="font-size: 2rem;">R$ {{ "%.2f"|format(faturamento_total)|replace('.', ',') }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card text-start">
+            <div class="stat-label text-uppercase">Clientes Atendidos</div>
+            <div class="stat-number mt-2" style="font-size: 2rem;">{{ novos_clientes }}</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card text-start">
+            <div class="stat-label text-uppercase">Orçamentos</div>
+            <div class="stat-number mt-2" style="font-size: 2rem;">{{ total_orcamentos }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-wrench me-2"></i>Serviços mais realizados</span>
+                <span class="text-secondary" style="font-size: 0.75rem;">no período</span>
+            </div>
+            <div class="card-body">
+                {% for s in servicos %}
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="text-truncate fw-500" style="width: 100px; font-size: 0.85rem;">{{ s.nome }}</span>
+                    <div class="flex-grow-1 rounded" style="height: 24px; background: var(--bg-input); overflow: hidden;">
+                        <div class="h-100 rounded" style="width: {{ s.porcentagem }}%; background: var(--accent-primary); transition: width 0.5s;"></div>
+                    </div>
+                    <span class="text-end text-secondary" style="width: 30px; font-size: 0.85rem;">{{ s.qtd }}</span>
+                </div>
+                {% else %}
+                <p class="text-secondary text-center py-4">Nenhum serviço no período.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-pie-chart me-2"></i>Particular × Seguro</div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                {% for t in tipos %}
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between mb-1" style="font-size: 0.85rem;">
+                        <span class="fw-500">{{ t.nome }}</span>
+                        <span class="text-secondary">{{ t.qtd }} itens</span>
+                    </div>
+                    <div class="rounded-pill" style="height: 8px; background: var(--bg-input); overflow: hidden;">
+                        <div class="h-100 rounded-pill" style="width: {{ t.porcentagem }}%; background: {% if t.nome == 'Seguro' %}var(--accent-info){% else %}var(--accent-primary){% endif %};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                <hr style="border-color: var(--border-color);">
+                <div class="row text-center mt-2">
+                    <div class="col-6 border-end" style="border-color: var(--border-color) !important;">
+                        <p class="text-secondary mb-1" style="font-size: 0.75rem;">Particular</p>
+                        <p class="fw-600 mb-0" style="font-size: 1.1rem;">R$ {{ "%.2f"|format(particular_valor)|replace('.', ',') }}</p>
+                    </div>
+                    <div class="col-6">
+                        <p class="text-secondary mb-1" style="font-size: 0.75rem;">Ticket Médio</p>
+                        <p class="fw-600 mb-0" style="font-size: 1.1rem;">R$ {{ "%.2f"|format(ticket_medio)|replace('.', ',') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-graph-up me-2"></i>Faturamento por mês</span>
+        <span class="text-secondary" style="font-size: 0.75rem;">últimos 12 meses</span>
+    </div>
+    <div class="card-body">
+        <div class="d-flex align-items-end justify-content-between gap-2" style="height: 180px;">
+            {% for f in faturamento_mensal %}
+            <div class="d-flex flex-column align-items-center justify-content-end flex-fill h-100">
+                <div class="rounded-top" style="width: 40px; height: {{ f.altura }}%; background: var(--accent-primary); transition: height 0.5s;" title="R$ {{ '%.2f'|format(f.valor)|replace('.', ',') }}"></div>
+            </div>
+            {% else %}
+            <p class="text-secondary text-center w-100">Sem dados de faturamento.</p>
+            {% endfor %}
+        </div>
+        <div class="d-flex justify-content-between gap-2 mt-2">
+            {% for f in faturamento_mensal %}
+            <div class="flex-fill text-center">
+                <p class="fw-500 mb-0" style="font-size: 0.8rem;">{{ f.mes }}</p>
+                <p class="text-secondary mb-0" style="font-size: 0.65rem;">R$ {{ "%.0f"|format(f.valor) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

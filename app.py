@@ -3,6 +3,7 @@ from flask import Flask, request, redirect, render_template, Blueprint, flash, j
 from functools import wraps
 import urllib.parse
 import pandas as pd
+import dashboard
 import cliente
 import servico
 import veiculo
@@ -217,6 +218,19 @@ def home():
                            orcamentos_pendentes=orcamentos_pendentes,
                            orcamentos_aprovados=orcamentos_aprovados)
 
+
+@index_bp.route('/dashboard')
+@login_obrigatorio
+def dashboard_page():
+    periodo = request.args.get('periodo', '7d')
+    data_inicio, data_fim, periodo = dashboard.calcular_periodo(
+        periodo,
+        request.args.get('data_inicio'),
+        request.args.get('data_fim')
+    )
+    dados = dashboard.obter_dados_dashboard(data_inicio, data_fim)
+    dados['periodo_ativo'] = periodo
+    return render_template('dashboard.html', **dados)
 
 # ==================== CLIENTES ====================
 clientes_bp = Blueprint('clientes', __name__)
@@ -708,11 +722,12 @@ app.register_blueprint(historico_bp)
 
 
 @app.route('/importar-planilha', methods=['POST'])
+@login_obrigatorio
 def importar_planilha():
     if 'arquivo' not in request.files:
         flash('Nenhum arquivo selecionado.', 'danger')
         return redirect('/')
-    
+
     arquivo = request.files['arquivo']
     if arquivo.filename == '':
         flash('Nenhum arquivo selecionado.', 'danger')
@@ -762,9 +777,6 @@ def importar_planilha():
         clientes_novos = 0
         veiculos_novos = 0
 
-        conexao = conectar()
-        cursor = conexao.cursor()
-
         # 3. Processamento das linhas
         for _, linha in df.iterrows():
             nome = str(linha.get('nome', '')).strip()
@@ -795,17 +807,23 @@ def importar_planilha():
 
             # --- ETAPA A: LOCALIZAR OU REGISTAR O CLIENTE ---
             cliente_id = None
-            if cpf:
-                cursor.execute('SELECT id FROM clientes WHERE cpf = ?', (cpf,))
-                res = cursor.fetchone()
-                if res:
-                    cliente_id = res[0]
+            conexao_busca = conectar()
+            if conexao_busca:
+                cursor_busca = conexao_busca.cursor()
+                try:
+                    if cpf:
+                        cursor_busca.execute('SELECT id FROM clientes WHERE cpf = ?', (cpf,))
+                        res = cursor_busca.fetchone()
+                        if res:
+                            cliente_id = res[0]
 
-            if not cliente_id:
-                cursor.execute('SELECT id FROM clientes WHERE LOWER(nome) = LOWER(?)', (nome,))
-                res = cursor.fetchone()
-                if res:
-                    cliente_id = res[0]
+                    if not cliente_id:
+                        cursor_busca.execute('SELECT id FROM clientes WHERE LOWER(nome) = LOWER(?)', (nome,))
+                        res = cursor_busca.fetchone()
+                        if res:
+                            cliente_id = res[0]
+                finally:
+                    conexao_busca.close()
 
             if not cliente_id:
                 sucesso_c, msg_c = cliente.cadastrar_cliente(
@@ -815,7 +833,7 @@ def importar_planilha():
                     cpf=cpf,
                     cep='', rua='', numero='', complemento='', bairro='', cidade='', estado=''
                 )
-                
+
                 # SE FALHAR POR CAUSA DO CPF (ex: CPF inválido), TENTA CADASTRAR SEM O CPF:
                 if not sucesso_c and cpf:
                     sucesso_c, msg_c = cliente.cadastrar_cliente(
@@ -828,10 +846,16 @@ def importar_planilha():
 
                 if sucesso_c:
                     clientes_novos += 1
-                    cursor.execute('SELECT id FROM clientes WHERE LOWER(nome) = LOWER(?) ORDER BY id DESC', (nome,))
-                    res = cursor.fetchone()
-                    if res:
-                        cliente_id = res[0]
+                    conexao_id = conectar()
+                    if conexao_id:
+                        cursor_id = conexao_id.cursor()
+                        try:
+                            cursor_id.execute('SELECT id FROM clientes WHERE LOWER(nome) = LOWER(?) ORDER BY id DESC', (nome,))
+                            res = cursor_id.fetchone()
+                            if res:
+                                cliente_id = res[0]
+                        finally:
+                            conexao_id.close()
 
             # --- ETAPA B: REGISTAR O VEÍCULO ---
             if cliente_id:
@@ -846,17 +870,18 @@ def importar_planilha():
                 if sucesso_v:
                     veiculos_novos += 1
 
-        conexao.close()
-
         flash(
             f'Importação concluída com sucesso! Novos clientes: {clientes_novos} | Novos veículos: {veiculos_novos}.',
             'success'
         )
+        registrar_log('Importação de Planilha', f"Importação concluída: {clientes_novos} clientes e {veiculos_novos} veículos cadastrados.")
 
     except Exception as e:
         flash(f'Erro durante a importação: {str(e)}', 'danger')
 
     return redirect('/')
+
+
 # ==================== EXECUÇÃO ====================
 if __name__ == '__main__':
     app.run(debug=True)
