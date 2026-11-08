@@ -762,6 +762,20 @@ def importar_planilha():
                 mapa_colunas[c] = 'telefone'
             elif 'mail' in nc:
                 mapa_colunas[c] = 'email'
+            elif 'cep' in nc:
+                mapa_colunas[c] = 'cep'
+            elif 'rua' in nc or 'logradouro' in nc or 'endereco' in nc or 'endereço' in nc:
+                mapa_colunas[c] = 'rua'
+            elif 'num' in nc or 'nº' in nc or nc in ['no', 'numero']:
+                mapa_colunas[c] = 'numero'
+            elif 'compl' in nc:
+                mapa_colunas[c] = 'complemento'
+            elif 'bairro' in nc:
+                mapa_colunas[c] = 'bairro'
+            elif 'cidade' in nc or 'municipio' in nc:
+                mapa_colunas[c] = 'cidade'
+            elif 'estado' in nc or 'uf' in nc:
+                mapa_colunas[c] = 'estado'
             elif 'placa' in nc:
                 mapa_colunas[c] = 'placa'
             elif 'modelo' in nc:
@@ -772,10 +786,14 @@ def importar_planilha():
                 mapa_colunas[c] = 'ano'
             elif 'cor' in nc:
                 mapa_colunas[c] = 'cor'
+            elif 'tipo' in nc:
+                mapa_colunas[c] = 'tipo_servico'
             elif 'servico' in nc or 'serviço' in nc or 'descricao' in nc or 'descriçao' in nc:
                 mapa_colunas[c] = 'servico'
             elif 'valor' in nc or 'preco' in nc or 'preço' in nc:
                 mapa_colunas[c] = 'valor'
+            elif 'status' in nc:
+                mapa_colunas[c] = 'status'
             elif 'obs' in nc or 'observa' in nc:
                 mapa_colunas[c] = 'observacoes'
 
@@ -802,6 +820,15 @@ def importar_planilha():
 
             telefone = str(linha.get('telefone', '')).strip()
             email = str(linha.get('email', '')).strip()
+
+            # Dados de endereço do cliente
+            cep = re.sub(r'[^0-9]', '', str(linha.get('cep', ''))).strip()
+            rua = str(linha.get('rua', '')).strip()
+            numero = str(linha.get('numero', '')).strip().replace('.0', '')
+            complemento = str(linha.get('complemento', '')).strip()
+            bairro = str(linha.get('bairro', '')).strip()
+            cidade = str(linha.get('cidade', '')).strip()
+            estado = str(linha.get('estado', '')).strip().upper()[:2] if len(str(linha.get('estado', '')).strip()) == 2 else str(linha.get('estado', '')).strip()
 
             # Separa Marca e Modelo se vier tudo na mesma célula (ex: "Chevrolet Onix 1.0")
             modelo_input = str(linha.get('modelo', '')).strip()
@@ -844,7 +871,8 @@ def importar_planilha():
                     telefone=telefone,
                     email=email,
                     cpf=cpf,
-                    cep='', rua='', numero='', complemento='', bairro='', cidade='', estado=''
+                    cep=cep, rua=rua, numero=numero, complemento=complemento,
+                    bairro=bairro, cidade=cidade, estado=estado
                 )
 
                 # SE FALHAR POR CAUSA DO CPF (ex: formato inesperado), TENTA CADASTRAR SEM O CPF:
@@ -854,7 +882,8 @@ def importar_planilha():
                         telefone=telefone,
                         email=email,
                         cpf='',
-                        cep='', rua='', numero='', complemento='', bairro='', cidade='', estado=''
+                        cep=cep, rua=rua, numero=numero, complemento=complemento,
+                        bairro=bairro, cidade=cidade, estado=estado
                     )
 
                 if sucesso_c:
@@ -900,6 +929,21 @@ def importar_planilha():
             servico_desc = str(linha.get('servico', '')).strip()
             valor_raw = str(linha.get('valor', '')).strip()
             observacoes_orc = str(linha.get('observacoes', '')).strip()
+            status_orc = str(linha.get('status', '')).strip()
+            tipo_servico = str(linha.get('tipo_servico', '')).strip()
+
+            # Normaliza tipo do serviço: Seguro ou Particular
+            tipo_final = 'Seguro' if 'segur' in tipo_servico.lower() else 'Particular'
+
+            # Normaliza status do orçamento
+            status_map = {
+                'pendente': 'Pendente',
+                'aprovado': 'Aprovado',
+                'concluido': 'Concluído',
+                'concluído': 'Concluído',
+                'recusado': 'Recusado'
+            }
+            status_final = status_map.get(status_orc.lower(), 'Pendente')
 
             if cliente_id and veiculo_id and servico_desc:
                 # Trata valor numérico
@@ -920,6 +964,10 @@ def importar_planilha():
                 if sucesso_o and orcamento_id:
                     orcamentos_novos += 1
 
+                    # Atualiza para o status correto se for diferente de Pendente
+                    if status_final != 'Pendente':
+                        orcamento.atualizar_status(orcamento_id, status_final)
+
                     # Verifica se o serviço já existe na tabela de serviços
                     servico_id = None
                     conexao_s = conectar()
@@ -935,13 +983,13 @@ def importar_planilha():
                         finally:
                             conexao_s.close()
 
-                    # Adiciona item ao orçamento
+                    # Adiciona item ao orçamento com o tipo correto (Particular ou Seguro)
                     orcamento.adicionar_item(
                         orcamento_id=orcamento_id,
                         servico_id=servico_id,
                         descricao_personalizada=servico_desc,
                         valor_unitario=valor_final,
-                        tipo='Particular'
+                        tipo=tipo_final
                     )
 
         flash(
