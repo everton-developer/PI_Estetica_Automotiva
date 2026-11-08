@@ -53,22 +53,34 @@
             --gradient-3: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%);
         }
 
-        /* ===== LIGHT THEME ===== */
-        [data-theme="light"] {
-            --bg-dark: #f0f2f5;
-            --bg-card: #ffffff;
-            --bg-card-hover: #f8f9fa;
-            --bg-input: #f5f6f8;
-            --border-color: #dde1e7;
-            --text-primary: #1a1a2e;
-            --text-secondary: #6b7280;
-            --navbar-bg: rgba(255, 255, 255, 0.95);
-            --accent-primary: #5a4bd1;
-            --accent-secondary: #8b7cf6;
+        /* ===== LIGHT THEME (Tons de Cinza Claro e Variantes) ===== */
+        [data-theme="light"],
+        [data-bs-theme="light"] {
+            --bg-dark: #e5e8ec;
+            --bg-card: #f2f4f7;
+            --bg-card-hover: #eaedf1;
+            --bg-input: #ffffff;
+            --border-color: #cbd2dc;
+            --text-primary: #1e242d;
+            --text-secondary: #5a6575;
+            --navbar-bg: rgba(229, 232, 236, 0.95);
+            --accent-primary: #5846db;
+            --accent-secondary: #7b6ce8;
             --accent-success: #059669;
             --accent-warning: #d97706;
             --accent-danger: #dc2626;
             --accent-info: #2563eb;
+
+            --bs-body-bg: var(--bg-dark);
+            --bs-body-color: var(--text-primary);
+            --bs-card-bg: var(--bg-card);
+            --bs-card-color: var(--text-primary);
+            --bs-card-border-color: var(--border-color);
+            --bs-border-color: var(--border-color);
+        }
+
+        [data-theme="light"] .card {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
         }
 
         * {
