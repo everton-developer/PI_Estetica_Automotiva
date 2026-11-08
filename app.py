@@ -734,11 +734,11 @@ def importar_planilha():
         return redirect('/')
 
     try:
-        # 1. Leitura do ficheiro com o pandas
+        # 1. Leitura do ficheiro com o pandas como string para não truncar zeros à esquerda de CPFs e telefones
         if arquivo.filename.endswith('.csv'):
-            df = pd.read_csv(arquivo)
+            df = pd.read_csv(arquivo, dtype=str)
         else:
-            df = pd.read_excel(arquivo)
+            df = pd.read_excel(arquivo, dtype=str)
 
         # 2. Normalização dinâmica de colunas (ignora acentos, espaços e maiúsculas/minúsculas)
         def limpar_coluna(col):
@@ -770,12 +770,19 @@ def importar_planilha():
                 mapa_colunas[c] = 'ano'
             elif 'cor' in nc:
                 mapa_colunas[c] = 'cor'
+            elif 'servico' in nc or 'serviço' in nc or 'descricao' in nc or 'descriçao' in nc:
+                mapa_colunas[c] = 'servico'
+            elif 'valor' in nc or 'preco' in nc or 'preço' in nc:
+                mapa_colunas[c] = 'valor'
+            elif 'obs' in nc or 'observa' in nc:
+                mapa_colunas[c] = 'observacoes'
 
         df = df.rename(columns=mapa_colunas)
         df = df.fillna('')
 
         clientes_novos = 0
         veiculos_novos = 0
+        orcamentos_novos = 0
 
         # 3. Processamento das linhas
         for _, linha in df.iterrows():
@@ -786,7 +793,11 @@ def importar_planilha():
             if not nome or not placa or 'obrigatório' in nome.lower() or nome.lower() in ['nan', 'none', 'nome cliente', 'nome do cliente']:
                 continue
 
-            cpf = re.sub(r'[^0-9]', '', str(linha.get('cpf', '')))
+            # Preserva e normaliza CPF garantindo 11 dígitos com zeros à esquerda
+            cpf = re.sub(r'[^0-9]', '', str(linha.get('cpf', ''))).strip()
+            if 0 < len(cpf) < 11:
+                cpf = cpf.zfill(11)
+
             telefone = str(linha.get('telefone', '')).strip()
             email = str(linha.get('email', '')).strip()
 
@@ -834,7 +845,7 @@ def importar_planilha():
                     cep='', rua='', numero='', complemento='', bairro='', cidade='', estado=''
                 )
 
-                # SE FALHAR POR CAUSA DO CPF (ex: CPF inválido), TENTA CADASTRAR SEM O CPF:
+                # SE FALHAR POR CAUSA DO CPF (ex: formato inesperado), TENTA CADASTRAR SEM O CPF:
                 if not sucesso_c and cpf:
                     sucesso_c, msg_c = cliente.cadastrar_cliente(
                         nome=nome,
@@ -857,7 +868,8 @@ def importar_planilha():
                         finally:
                             conexao_id.close()
 
-            # --- ETAPA B: REGISTAR O VEÍCULO ---
+            # --- ETAPA B: REGISTAR OU LOCALIZAR O VEÍCULO ---
+            veiculo_id = None
             if cliente_id:
                 sucesso_v, _ = veiculo.cadastrar_veiculo(
                     marca=marca,
@@ -870,11 +882,71 @@ def importar_planilha():
                 if sucesso_v:
                     veiculos_novos += 1
 
+                # Localiza o id do veículo
+                conexao_v = conectar()
+                if conexao_v:
+                    cursor_v = conexao_v.cursor()
+                    try:
+                        cursor_v.execute('SELECT id FROM veiculos WHERE LOWER(placa) = LOWER(?)', (placa,))
+                        res_v = cursor_v.fetchone()
+                        if res_v:
+                            veiculo_id = res_v[0]
+                    finally:
+                        conexao_v.close()
+
+            # --- ETAPA C: REGISTAR O ORÇAMENTO ---
+            servico_desc = str(linha.get('servico', '')).strip()
+            valor_raw = str(linha.get('valor', '')).strip()
+            observacoes_orc = str(linha.get('observacoes', '')).strip()
+
+            if cliente_id and veiculo_id and servico_desc:
+                # Trata valor numérico
+                valor_final = 0.0
+                if valor_raw:
+                    val_clean = re.sub(r'[^0-9,\.]', '', valor_raw).replace(',', '.')
+                    try:
+                        valor_final = float(val_clean)
+                    except ValueError:
+                        valor_final = 0.0
+
+                sucesso_o, msg_o, orcamento_id = orcamento.criar_orcamento(
+                    cliente_id=cliente_id,
+                    veiculo_id=veiculo_id,
+                    observacoes=observacoes_orc
+                )
+
+                if sucesso_o and orcamento_id:
+                    orcamentos_novos += 1
+
+                    # Verifica se o serviço já existe na tabela de serviços
+                    servico_id = None
+                    conexao_s = conectar()
+                    if conexao_s:
+                        cursor_s = conexao_s.cursor()
+                        try:
+                            cursor_s.execute('SELECT id, valor FROM servicos WHERE LOWER(nome) = LOWER(?)', (servico_desc,))
+                            res_s = cursor_s.fetchone()
+                            if res_s:
+                                servico_id = res_s[0]
+                                if valor_final == 0.0:
+                                    valor_final = float(res_s[1])
+                        finally:
+                            conexao_s.close()
+
+                    # Adiciona item ao orçamento
+                    orcamento.adicionar_item(
+                        orcamento_id=orcamento_id,
+                        servico_id=servico_id,
+                        descricao_personalizada=servico_desc,
+                        valor_unitario=valor_final,
+                        tipo='Particular'
+                    )
+
         flash(
-            f'Importação concluída com sucesso! Novos clientes: {clientes_novos} | Novos veículos: {veiculos_novos}.',
+            f'Importação concluída com sucesso! Novos clientes: {clientes_novos} | Novos veículos: {veiculos_novos} | Novos orçamentos: {orcamentos_novos}.',
             'success'
         )
-        registrar_log('Importação de Planilha', f"Importação concluída: {clientes_novos} clientes e {veiculos_novos} veículos cadastrados.")
+        registrar_log('Importação de Planilha', f"Importação concluída: {clientes_novos} clientes, {veiculos_novos} veículos e {orcamentos_novos} orçamentos cadastrados.")
 
     except Exception as e:
         flash(f'Erro durante a importação: {str(e)}', 'danger')
