@@ -223,13 +223,15 @@ def home():
 @login_obrigatorio
 def dashboard_page():
     periodo = request.args.get('periodo', '7d')
+    status_filtro = request.args.get('status', 'Todos')
     data_inicio, data_fim, periodo = dashboard.calcular_periodo(
         periodo,
         request.args.get('data_inicio'),
         request.args.get('data_fim')
     )
-    dados = dashboard.obter_dados_dashboard(data_inicio, data_fim)
+    dados = dashboard.obter_dados_dashboard(data_inicio, data_fim, status_filtro)
     dados['periodo_ativo'] = periodo
+    dados['status_ativo'] = status_filtro
     return render_template('dashboard.html', **dados)
 
 # ==================== CLIENTES ====================

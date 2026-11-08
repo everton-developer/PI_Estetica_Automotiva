@@ -6,36 +6,38 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
     <div>
         <h2 class="fw-bold mb-1"><i class="bi bi-bar-chart-line me-2" style="color: var(--accent-primary);"></i>Painel Administrativo</h2>
-        <p class="text-secondary mb-0">Oficina de martelinho de ouro · visão geral</p>
+        <p class="text-secondary mb-0">Oficina de martelinho de ouro · visão analítica e financeira</p>
     </div>
 </div>
 
-<!-- Filtro de período (clicável) -->
+<!-- Filtros de Período e Status -->
 <div class="card mb-4">
-    <div class="card-body p-2">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div class="d-flex flex-wrap gap-1">
-                <a href="/dashboard?periodo=hoje"
+    <div class="card-body p-3">
+        <!-- Filtro de Período -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                <span class="text-secondary small me-2"><i class="bi bi-clock-history me-1"></i>Período:</span>
+                <a href="/dashboard?periodo=hoje&status={{ status_ativo }}"
                    class="btn btn-sm {% if periodo_ativo == 'hoje' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Hoje</a>
-                <a href="/dashboard?periodo=7d"
+                <a href="/dashboard?periodo=7d&status={{ status_ativo }}"
                    class="btn btn-sm {% if periodo_ativo == '7d' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Últimos 7 dias</a>
-                <a href="/dashboard?periodo=mes"
+                <a href="/dashboard?periodo=mes&status={{ status_ativo }}"
                    class="btn btn-sm {% if periodo_ativo == 'mes' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Este mês</a>
-                <a href="/dashboard?periodo=ultimo_mes"
+                <a href="/dashboard?periodo=ultimo_mes&status={{ status_ativo }}"
                    class="btn btn-sm {% if periodo_ativo == 'ultimo_mes' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Último mês</a>
-                <a href="/dashboard?periodo=custom"
+                <a href="/dashboard?periodo=custom&status={{ status_ativo }}"
                    class="btn btn-sm {% if periodo_ativo == 'custom' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">Personalizado</a>
             </div>
-            <div class="text-secondary" style="font-size: 0.8rem;">
+            <div class="text-secondary" style="font-size: 0.85rem;">
                 <i class="bi bi-calendar-event me-1"></i>
                 <strong>{{ data_inicio_fmt }}</strong> até <strong>{{ data_fim_fmt }}</strong>
             </div>
         </div>
 
         {% if periodo_ativo == 'custom' %}
-        <hr style="border-color: var(--border-color); margin: 0.75rem 0;">
-        <form method="GET" action="/dashboard" class="row g-2 align-items-end p-1">
+        <form method="GET" action="/dashboard" class="row g-2 align-items-end p-2 mb-3 rounded" style="background: var(--bg-input);">
             <input type="hidden" name="periodo" value="custom">
+            <input type="hidden" name="status" value="{{ status_ativo }}">
             <div class="col-md-4 col-sm-6">
                 <label class="form-label mb-1" style="font-size: 0.75rem;">Data início</label>
                 <input type="date" name="data_inicio" class="form-control form-control-sm" value="{{ data_inicio }}" required>
@@ -46,11 +48,89 @@
             </div>
             <div class="col-md-4">
                 <button type="submit" class="btn btn-sm btn-primary-custom w-100">
-                    <i class="bi bi-funnel me-1"></i> Aplicar filtro
+                    <i class="bi bi-funnel me-1"></i> Aplicar intervalo
                 </button>
             </div>
         </form>
         {% endif %}
+
+        <hr style="border-color: var(--border-color); margin: 0.5rem 0 0.85rem 0;">
+
+        <!-- Filtro de Status do Orçamento -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                <span class="text-secondary small me-2"><i class="bi bi-funnel me-1"></i>Status do Orçamento:</span>
+                <a href="/dashboard?periodo={{ periodo_ativo }}{% if periodo_ativo == 'custom' %}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}&status=Todos"
+                   class="btn btn-sm {% if status_ativo == 'Todos' %}btn-primary-custom{% else %}btn-outline-custom border-0{% endif %}">
+                   Geral (Todos) <span class="badge bg-secondary ms-1">{{ total_geral_orcamentos }}</span>
+                </a>
+                <a href="/dashboard?periodo={{ periodo_ativo }}{% if periodo_ativo == 'custom' %}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}&status=Pendente"
+                   class="btn btn-sm {% if status_ativo == 'Pendente' %}btn-warning text-dark{% else %}btn-outline-custom border-0{% endif %}">
+                   <i class="bi bi-hourglass-split me-1"></i>Pendentes <span class="badge bg-warning text-dark ms-1">{{ resumo_status.Pendente.qtd }}</span>
+                </a>
+                <a href="/dashboard?periodo={{ periodo_ativo }}{% if periodo_ativo == 'custom' %}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}&status=Aprovado"
+                   class="btn btn-sm {% if status_ativo == 'Aprovado' %}btn-info text-dark{% else %}btn-outline-custom border-0{% endif %}">
+                   <i class="bi bi-check-circle me-1"></i>Aprovados <span class="badge bg-info text-dark ms-1">{{ resumo_status.Aprovado.qtd }}</span>
+                </a>
+                <a href="/dashboard?periodo={{ periodo_ativo }}{% if periodo_ativo == 'custom' %}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}&status=Concluído"
+                   class="btn btn-sm {% if status_ativo == 'Concluído' %}btn-success{% else %}btn-outline-custom border-0{% endif %}">
+                   <i class="bi bi-check-all me-1"></i>Concluídos <span class="badge bg-success ms-1">{{ resumo_status.Concluído.qtd }}</span>
+                </a>
+                <a href="/dashboard?periodo={{ periodo_ativo }}{% if periodo_ativo == 'custom' %}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}{% endif %}&status=Recusado"
+                   class="btn btn-sm {% if status_ativo == 'Recusado' %}btn-danger{% else %}btn-outline-custom border-0{% endif %}">
+                   <i class="bi bi-x-circle me-1"></i>Recusados <span class="badge bg-danger ms-1">{{ resumo_status.Recusado.qtd }}</span>
+                </a>
+            </div>
+            {% if status_ativo != 'Todos' %}
+            <div class="text-info small">
+                <i class="bi bi-info-circle me-1"></i>Visualizando apenas: <strong>{{ status_ativo }}</strong>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Divisão Visual por Status (Cards Resumo da Oficina) -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card h-100 p-3 border-0" style="background: rgba(255, 193, 7, 0.08); border-left: 4px solid #ffc107 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-uppercase small fw-bold text-warning"><i class="bi bi-hourglass-split me-1"></i>Pendentes</span>
+                <span class="badge bg-warning text-dark">{{ resumo_status.Pendente.qtd }}</span>
+            </div>
+            <div class="h5 fw-bold mb-0">R$ {{ "%.2f"|format(resumo_status.Pendente.valor)|replace('.', ',') }}</div>
+            <small class="text-secondary" style="font-size: 0.72rem;">aguardando aprovação</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 p-3 border-0" style="background: rgba(13, 202, 240, 0.08); border-left: 4px solid #0dcaf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-uppercase small fw-bold text-info"><i class="bi bi-check-circle me-1"></i>Aprovados</span>
+                <span class="badge bg-info text-dark">{{ resumo_status.Aprovado.qtd }}</span>
+            </div>
+            <div class="h5 fw-bold mb-0">R$ {{ "%.2f"|format(resumo_status.Aprovado.valor)|replace('.', ',') }}</div>
+            <small class="text-secondary" style="font-size: 0.72rem;">em execução / agendados</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 p-3 border-0" style="background: rgba(25, 135, 84, 0.08); border-left: 4px solid #198754 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-uppercase small fw-bold text-success"><i class="bi bi-check-all me-1"></i>Concluídos</span>
+                <span class="badge bg-success">{{ resumo_status.Concluído.qtd }}</span>
+            </div>
+            <div class="h5 fw-bold mb-0">R$ {{ "%.2f"|format(resumo_status.Concluído.valor)|replace('.', ',') }}</div>
+            <small class="text-secondary" style="font-size: 0.72rem;">finalizados e entregues</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card h-100 p-3 border-0" style="background: rgba(220, 53, 69, 0.08); border-left: 4px solid #dc3545 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-uppercase small fw-bold text-danger"><i class="bi bi-x-circle me-1"></i>Recusados</span>
+                <span class="badge bg-danger">{{ resumo_status.Recusado.qtd }}</span>
+            </div>
+            <div class="h5 fw-bold mb-0">R$ {{ "%.2f"|format(resumo_status.Recusado.valor)|replace('.', ',') }}</div>
+            <small class="text-secondary" style="font-size: 0.72rem;">não fechados</small>
+        </div>
     </div>
 </div>
 
@@ -58,20 +138,25 @@
 <div class="row g-4 mb-4">
     <div class="col-md-4">
         <div class="stat-card text-start">
-            <div class="stat-label text-uppercase">Faturamento</div>
+            <div class="stat-label text-uppercase">{{ label_faturamento }}</div>
             <div class="stat-number mt-2" style="font-size: 2rem;">R$ {{ "%.2f"|format(faturamento_total)|replace('.', ',') }}</div>
+            {% if status_ativo == 'Todos' %}
+            <small class="text-secondary">Total geral orçado: R$ {{ "%.2f"|format(total_geral_valor)|replace('.', ',') }}</small>
+            {% endif %}
         </div>
     </div>
     <div class="col-md-4">
         <div class="stat-card text-start">
             <div class="stat-label text-uppercase">Clientes Atendidos</div>
             <div class="stat-number mt-2" style="font-size: 2rem;">{{ novos_clientes }}</div>
+            <small class="text-secondary">clientes distintos no período</small>
         </div>
     </div>
     <div class="col-md-4">
         <div class="stat-card text-start">
-            <div class="stat-label text-uppercase">Orçamentos</div>
+            <div class="stat-label text-uppercase">Orçamentos {% if status_ativo != 'Todos' %}({{ status_ativo }}){% endif %}</div>
             <div class="stat-number mt-2" style="font-size: 2rem;">{{ total_orcamentos }}</div>
+            <small class="text-secondary">ticket médio: R$ {{ "%.2f"|format(ticket_medio)|replace('.', ',') }}</small>
         </div>
     </div>
 </div>
@@ -81,19 +166,19 @@
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-wrench me-2"></i>Serviços mais realizados</span>
-                <span class="text-secondary" style="font-size: 0.75rem;">no período</span>
+                <span class="text-secondary" style="font-size: 0.75rem;">no período {% if status_ativo != 'Todos' %}({{ status_ativo }}){% endif %}</span>
             </div>
             <div class="card-body">
                 {% for s in servicos %}
                 <div class="d-flex align-items-center gap-3 mb-3">
-                    <span class="text-truncate fw-500" style="width: 100px; font-size: 0.85rem;">{{ s.nome }}</span>
+                    <span class="text-truncate fw-500" style="width: 140px; font-size: 0.85rem;" title="{{ s.nome }}">{{ s.nome }}</span>
                     <div class="flex-grow-1 rounded" style="height: 24px; background: var(--bg-input); overflow: hidden;">
                         <div class="h-100 rounded" style="width: {{ s.porcentagem }}%; background: var(--accent-primary); transition: width 0.5s;"></div>
                     </div>
-                    <span class="text-end text-secondary" style="width: 30px; font-size: 0.85rem;">{{ s.qtd }}</span>
+                    <span class="text-end text-secondary" style="width: 40px; font-size: 0.85rem;">{{ s.qtd }} un</span>
                 </div>
                 {% else %}
-                <p class="text-secondary text-center py-4">Nenhum serviço no período.</p>
+                <p class="text-secondary text-center py-4">Nenhum serviço registrado neste filtro.</p>
                 {% endfor %}
             </div>
         </div>
@@ -133,8 +218,8 @@
 
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-graph-up me-2"></i>Faturamento por mês</span>
-        <span class="text-secondary" style="font-size: 0.75rem;">últimos 12 meses</span>
+        <span><i class="bi bi-graph-up me-2"></i>Evolução Financeira por mês</span>
+        <span class="text-secondary" style="font-size: 0.75rem;">últimos 12 meses {% if status_ativo != 'Todos' %}({{ status_ativo }}){% else %}(Aprovados + Concluídos){% endif %}</span>
     </div>
     <div class="card-body">
         <div class="d-flex align-items-end justify-content-between gap-2" style="height: 180px;">
@@ -143,7 +228,7 @@
                 <div class="rounded-top" style="width: 40px; height: {{ f.altura }}%; background: var(--accent-primary); transition: height 0.5s;" title="R$ {{ '%.2f'|format(f.valor)|replace('.', ',') }}"></div>
             </div>
             {% else %}
-            <p class="text-secondary text-center w-100">Sem dados de faturamento.</p>
+            <p class="text-secondary text-center w-100">Sem dados financeiros para este período/status.</p>
             {% endfor %}
         </div>
         <div class="d-flex justify-content-between gap-2 mt-2">

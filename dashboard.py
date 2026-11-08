@@ -29,7 +29,7 @@ def _fmt_br(data_iso):
 
 
 def calcular_periodo(periodo, data_inicio_raw=None, data_fim_raw=None):
-    """Retorna (data_inicio_iso, data_fim_iso) com base no filtro escolhido."""
+    """Retorna (data_inicio_iso, data_fim_iso, periodo) com base no filtro escolhido."""
     hoje = datetime.now(BRT)
 
     if periodo == 'hoje':
@@ -59,68 +59,148 @@ def calcular_periodo(periodo, data_inicio_raw=None, data_fim_raw=None):
     return d_ini, d_fim, periodo
 
 
-def obter_dados_dashboard(data_inicio, data_fim):
+def obter_dados_dashboard(data_inicio, data_fim, status_filtro='Todos'):
     # Para pegar o dia inteiro, comparamos com data_fim + 1 dia
     data_fim_inclusivo = (datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
 
-    # ===== KPIs do período =====
-    kpi = _consultar("""
-        SELECT COALESCE(SUM(valor_total), 0),
-               COUNT(id),
-               COALESCE(AVG(valor_total), 0)
+    # ===== RESUMO COMPLETO POR STATUS NO PERÍODO (Sempre disponível) =====
+    status_raw = _consultar("""
+        SELECT status,
+               COUNT(*),
+               COALESCE(SUM(valor_total), 0)
         FROM orcamentos
-        WHERE status IN ('Aprovado', 'Concluído')
-          AND data_atualizacao >= ? AND data_atualizacao < ?
-    """, [data_inicio, data_fim_inclusivo])
-    kpi = kpi[0] if kpi else (0, 0, 0)
-
-    # ===== Clientes atendidos no período (proxy de "novos clientes") =====
-    novos = _consultar("""
-        SELECT COUNT(DISTINCT cliente_id) FROM orcamentos
         WHERE data_atualizacao >= ? AND data_atualizacao < ?
+        GROUP BY status
     """, [data_inicio, data_fim_inclusivo])
-    novos_clientes = int(novos[0][0]) if novos else 0
 
-    # ===== Serviços mais realizados no período =====
-    servicos_raw = _consultar("""
-        SELECT COALESCE(oi.servico_nome, 'Personalizado') AS nome,
+    resumo_status = {
+        'Pendente': {'qtd': 0, 'valor': 0.0},
+        'Aprovado': {'qtd': 0, 'valor': 0.0},
+        'Concluído': {'qtd': 0, 'valor': 0.0},
+        'Recusado': {'qtd': 0, 'valor': 0.0}
+    }
+    total_geral_orcamentos = 0
+    total_geral_valor = 0.0
+
+    for st, qtd, val in status_raw:
+        if st in resumo_status:
+            resumo_status[st] = {'qtd': int(qtd), 'valor': float(val)}
+        total_geral_orcamentos += int(qtd)
+        total_geral_valor += float(val)
+
+    # ===== KPIs CONDICIONADOS AO STATUS_FILTRO =====
+    params_kpi = [data_inicio, data_fim_inclusivo]
+    where_status_kpi = ""
+    label_faturamento = "Faturamento (Aprovados + Concluídos)"
+
+    if status_filtro == 'Todos':
+        # No geral, o faturamento efetivo reflete orçamentos fechados (Aprovados e Concluídos),
+        # mas o total de orçamentos e clientes reflete TODOS os status.
+        where_status_kpi = "AND status IN ('Aprovado', 'Concluído')"
+        
+        # Consulta faturamento efetivo
+        kpi_fat = _consultar(f"""
+            SELECT COALESCE(SUM(valor_total), 0),
+                   COALESCE(AVG(valor_total), 0)
+            FROM orcamentos
+            WHERE data_atualizacao >= ? AND data_atualizacao < ?
+              {where_status_kpi}
+        """, params_kpi)
+        faturamento_valor = float(kpi_fat[0][0]) if kpi_fat else 0.0
+        ticket_medio = float(kpi_fat[0][1]) if kpi_fat else 0.0
+
+        # Total de orçamentos de todos os status
+        total_orcamentos = total_geral_orcamentos
+
+        # Clientes atendidos de todos os status
+        novos = _consultar("""
+            SELECT COUNT(DISTINCT cliente_id) FROM orcamentos
+            WHERE data_atualizacao >= ? AND data_atualizacao < ?
+        """, [data_inicio, data_fim_inclusivo])
+        novos_clientes = int(novos[0][0]) if novos else 0
+
+        # Para serviços e tipos no modo 'Todos', considera todos os orçamentos do período
+        filtro_servicos_status = ""
+        params_servicos = [data_inicio, data_fim_inclusivo]
+    else:
+        # Filtrado por um status específico (Pendente, Aprovado, Concluído ou Recusado)
+        label_faturamento = f"Valor Total ({status_filtro})"
+        where_status = "AND o.status = ?"
+        
+        kpi = _consultar("""
+            SELECT COALESCE(SUM(valor_total), 0),
+                   COUNT(id),
+                   COALESCE(AVG(valor_total), 0)
+            FROM orcamentos
+            WHERE status = ?
+              AND data_atualizacao >= ? AND data_atualizacao < ?
+        """, [status_filtro, data_inicio, data_fim_inclusivo])
+        kpi = kpi[0] if kpi else (0, 0, 0)
+        
+        faturamento_valor = float(kpi[0])
+        total_orcamentos = int(kpi[1])
+        ticket_medio = float(kpi[2])
+
+        novos = _consultar("""
+            SELECT COUNT(DISTINCT cliente_id) FROM orcamentos
+            WHERE status = ?
+              AND data_atualizacao >= ? AND data_atualizacao < ?
+        """, [status_filtro, data_inicio, data_fim_inclusivo])
+        novos_clientes = int(novos[0][0]) if novos else 0
+
+        filtro_servicos_status = "AND o.status = ?"
+        params_servicos = [data_inicio, data_fim_inclusivo, status_filtro]
+
+    # ===== SERVIÇOS MAIS REALIZADOS NO PERÍODO =====
+    # Usa COALESCE(servico_nome, descricao_personalizada, 'Personalizado') para pegar o nome real
+    servicos_raw = _consultar(f"""
+        SELECT COALESCE(NULLIF(oi.servico_nome, ''), NULLIF(oi.descricao_personalizada, ''), 'Personalizado') AS nome,
                COUNT(*) AS qtd
         FROM orcamento_itens oi
         JOIN orcamentos o ON oi.orcamento_id = o.id
         WHERE o.data_atualizacao >= ? AND o.data_atualizacao < ?
-        GROUP BY COALESCE(oi.servico_nome, 'Personalizado')
+          {filtro_servicos_status}
+        GROUP BY COALESCE(NULLIF(oi.servico_nome, ''), NULLIF(oi.descricao_personalizada, ''), 'Personalizado')
         ORDER BY qtd DESC
-        LIMIT 5
-    """, [data_inicio, data_fim_inclusivo])
+        LIMIT 6
+    """, params_servicos)
     max_s = max([s[1] for s in servicos_raw]) if servicos_raw else 1
     servicos = [{'nome': s[0], 'qtd': s[1], 'porcentagem': (s[1] / max_s) * 100} for s in servicos_raw]
 
-    # ===== Particular x Seguro =====
-    tipos_raw = _consultar("""
+    # ===== PARTICULAR X SEGURO =====
+    tipos_raw = _consultar(f"""
         SELECT COALESCE(oi.servico_tipo, 'Particular') AS tipo,
                COUNT(*) AS qtd,
                COALESCE(SUM(oi.valor_unitario), 0) AS total
         FROM orcamento_itens oi
         JOIN orcamentos o ON oi.orcamento_id = o.id
         WHERE o.data_atualizacao >= ? AND o.data_atualizacao < ?
+          {filtro_servicos_status}
         GROUP BY COALESCE(oi.servico_tipo, 'Particular')
-    """, [data_inicio, data_fim_inclusivo])
+    """, params_servicos)
     total_t = sum([t[1] for t in tipos_raw]) or 1
     tipos = [{'nome': t[0], 'qtd': t[1], 'valor': float(t[2]),
               'porcentagem': (t[1] / total_t) * 100} for t in tipos_raw]
     particular = next((t for t in tipos if t['nome'] == 'Particular'), {'valor': 0})
 
-    # ===== Faturamento mensal (últimos 12 meses, independe do filtro) =====
-    mensal_raw = _consultar("""
+    # ===== FATURAMENTO MENSAL (ÚLTIMOS 12 MESES) =====
+    if status_filtro == 'Todos':
+        status_mensal_sql = "WHERE status IN ('Aprovado', 'Concluído')"
+        params_mensal = []
+    else:
+        status_mensal_sql = "WHERE status = ?"
+        params_mensal = [status_filtro]
+
+    mensal_raw = _consultar(f"""
         SELECT SUBSTR(data_atualizacao, 1, 7) AS mes,
                COALESCE(SUM(valor_total), 0) AS total
         FROM orcamentos
-        WHERE status IN ('Aprovado', 'Concluído')
+        {status_mensal_sql}
         GROUP BY mes
         ORDER BY mes DESC
         LIMIT 12
-    """)
-    mensal_raw = list(reversed(mensal_raw))  # ordem cronológica
+    """, params_mensal)
+    mensal_raw = list(reversed(mensal_raw))
 
     meses_pt = {'01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr',
                 '05': 'Mai', '06': 'Jun', '07': 'Jul', '08': 'Ago',
@@ -136,10 +216,14 @@ def obter_dados_dashboard(data_inicio, data_fim):
         })
 
     return {
-        'faturamento_total': float(kpi[0]),
-        'total_orcamentos': int(kpi[1]),
-        'ticket_medio': float(kpi[2]),
+        'faturamento_total': faturamento_valor,
+        'label_faturamento': label_faturamento,
+        'total_orcamentos': total_orcamentos,
+        'total_geral_orcamentos': total_geral_orcamentos,
+        'total_geral_valor': total_geral_valor,
+        'ticket_medio': ticket_medio,
         'novos_clientes': novos_clientes,
+        'resumo_status': resumo_status,
         'servicos': servicos,
         'tipos': tipos,
         'particular_valor': float(particular['valor']),
@@ -148,4 +232,5 @@ def obter_dados_dashboard(data_inicio, data_fim):
         'data_fim': data_fim,
         'data_inicio_fmt': _fmt_br(data_inicio),
         'data_fim_fmt': _fmt_br(data_fim),
+        'status_filtro': status_filtro,
     }
